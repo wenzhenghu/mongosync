@@ -11,6 +11,7 @@
 namespace mlog {
 
 enum LogLevel {
+	kDebug,
 	kInfo,
 	kWarn,
 	kFatal,
@@ -42,6 +43,8 @@ std::string GetLevelStr();
 
 }
 
+
+#define DEBUG   mlog::kDebug
 #define INFO    mlog::kInfo
 #define WARN    mlog::kWarn
 #define FATAL   mlog::kFatal

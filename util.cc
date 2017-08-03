@@ -198,10 +198,13 @@ void *BGThreadGroup::Run(void *arg) {
     }
 
     unit = queue_p->front();
+
+	LOG(DEBUG)  << " util bsonobj data: " << unit.ns << std::endl;
+
     queue_p->pop();
     pthread_mutex_unlock(queue_mutex_p);
 
-    conn->insert(unit.ns, *(unit.batch), mongo::InsertOption_ContinueOnError, &mongo::WriteConcern::unacknowledged); 
+    conn->insert(unit.ns, *(unit.batch)); 
     delete unit.batch;
   }
 

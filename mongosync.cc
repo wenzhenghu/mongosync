@@ -503,9 +503,15 @@ void MongoSync::GenericProcessOplog(OplogProcessOp op) {
 	mongo::Query query;	
 
   query = mongo::Query(BSON("$or" << BSON_ARRAY(BSON("ns" << BSON("$regex" << ("^"+opt_.db))) << BSON("ns" << "admin.$cmd")) << "ts" << oplog_begin_.timestamp()));
-	mongo::BSONObj obj = src_conn_->findOne(oplog_ns_, query, NULL, mongo::QueryOption_SlaveOk);
+
+  LOG(DEBUG) << "find oplog begin position with query :" << query.toString() << std::endl;
+
+  mongo::BSONObj obj = src_conn_->findOne(oplog_ns_, query, NULL, mongo::QueryOption_SlaveOk);
+
+  LOG(DEBUG) << "find oplog begin position return :" << obj.toString() << std::endl;
+  
   if (obj.isEmpty()) {
-    LOG(FATAL) << "Can not find oplog at" << oplog_begin_.sec << ","
+    LOG(FATAL) << "Can not find oplog at " << oplog_begin_.sec << ","
       << oplog_begin_.no << std::endl;
     return;
   }
@@ -654,7 +660,7 @@ void MongoSync::CloneColl(std::string src_ns, std::string dst_ns, int batch_size
   // Clone record
 retry:
 	cursor = src_conn_->query(src_ns, opt_.filter.snapshot(), 0, 0, NULL,
-                            mongo::QueryOption_AwaitData | mongo::QueryOption_SlaveOk | mongo::QueryOption_NoCursorTimeout);
+                            mongo::QueryOption_SlaveOk | mongo::QueryOption_NoCursorTimeout);
 	std::vector<mongo::BSONObj> *batch = new std::vector<mongo::BSONObj>; //to be deleted by bg thread
 	acc_size = 0;
 	percent = 0;
@@ -663,6 +669,7 @@ retry:
 	try {
 		while (cursor->more()) {
 			mongo::BSONObj obj = cursor->next();
+			LOG(DEBUG) << MONGOSYNC_PROMPT << " bsonobj data: " << obj.toString() << std::endl;
 			acc_size += obj.objsize();
 			batch->push_back(obj.getOwned());
 			if (acc_size >= batch_size) {
@@ -727,7 +734,7 @@ void MongoSync::CloneCollIndex(std::string sns, std::string dns) {
 		builder << "ns" << dns;
 		SetCollIndexesByVersion(dst_conn_, dst_version_, dns, builder.obj());
 	}
-	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "clone " << sns << " indexes success, total " << indexes_num << "objects\n" << std::endl;
+	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "clone " << sns << " indexes success, total " << indexes_num << " objects\n" << std::endl;
 }
 
 bool MongoSync::ProcessSingleOplog(const std::string& db, const std::string& coll, std::string dst_db, std::string dst_coll, const mongo::BSONObj& oplog, const OplogProcessOp op) {
@@ -772,6 +779,9 @@ bool MongoSync::ProcessSingleOplog(const std::string& db, const std::string& col
     return false;
   }
 	mongo::BSONObj obj = oplog.getObjectField("o");
+
+	LOG(DEBUG) << "start sync oplog :" << oplog.toString() << std::endl;
+
 	switch(type.at(0)) {
 		case 'i':
 			ApplyInsertOplog(dst_db, dst_coll, oplog);
@@ -907,8 +917,8 @@ OplogTime MongoSync::GetSideOplogTime(mongo::DBClientConnection* conn, std::stri
 	} else if (!db.empty() && !coll.empty()) {
 		NamespaceString ns(db, coll);
 		obj = conn->findOne(oplog_ns, mongo::Query(BSON("$or" << BSON_ARRAY(BSON("ns" << ns.ns()) 
-																																					<< BSON("ns" << ns.db() + ".system.indexes")
-																																					<< BSON("ns" << ns.db() + ".system.cmd")))).sort("$natural", order), NULL, mongo::QueryOption_SlaveOk);
+			<< BSON("ns" << ns.db() + ".system.indexes")
+			<< BSON("ns" << ns.db() + ".system.cmd")))).sort("$natural", order), NULL, mongo::QueryOption_SlaveOk);
 	} else {
 		LOG(FATAL) << "get side oplog time erorr" << std::endl;
 		exit(-1);
@@ -938,7 +948,22 @@ int MongoSync::GetAllCollByVersion(mongo::DBClientConnection* conn, std::string 
 		array = tmp.getObjectField("cursor").getObjectField("firstBatch");
 		int32_t idx = 0;
 		while (array.hasField(util::Int2Str(idx))) {
-			colls.push_back(array.getObjectField(util::Int2Str(idx++)).getStringField("name"));
+			// need skip system collections 
+			std::string coll = array.getObjectField(util::Int2Str(idx++)).getStringField("name");
+
+			LOG(INFO) << "get coll : " << coll << std::endl;
+			
+			if (mongoutils::str::endsWith(coll.c_str(), "system.namespaces") ||
+				mongoutils::str::endsWith(coll.c_str(), "system.users") ||
+				mongoutils::str::endsWith(coll.c_str(), "system.js") ||
+				mongoutils::str::endsWith(coll.c_str(), "system.profile") ||
+				mongoutils::str::endsWith(coll.c_str(), "system.indexes") ||
+				mongoutils::str::contains(coll, ".$")) {
+					LOG(INFO) << "this is sys coll : " << coll << " we skip it " << std::endl;
+					  continue;
+			}
+
+			colls.push_back(coll);
 		} 
 	} else if (version_header == "2.4." || version_header == "2.6.") {
 		std::auto_ptr<mongo::DBClientCursor> cursor = conn->query(db + ".system.namespaces", mongo::Query().snapshot(), 0, 0, NULL, mongo::QueryOption_SlaveOk | mongo::QueryOption_NoCursorTimeout);
