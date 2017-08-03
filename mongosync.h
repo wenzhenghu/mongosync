@@ -31,7 +31,7 @@ struct OplogTime {
 	const OplogTime& operator=(const mongo::Timestamp_t& t) {
 		sec = t.seconds();
 		no = t.increment();
-    return *this;
+    	return *this;
 	}
 
 	OplogTime(int32_t _sec = -1, int32_t _no = -1)
@@ -47,25 +47,26 @@ struct Options {
 	Options()
     : src_auth_db("admin"),
 		src_use_mcr(false),
-	  dst_auth_db("admin"),		
+	  	dst_auth_db("admin"),		
 		dst_use_mcr(false),
 		oplog(false),
-    raw_oplog(false),
-    dst_oplog_ns("sync.oplog"),
-    no_index(false),
-    bg_num(10),
+    	raw_oplog(false),
+    	dst_oplog_ns("sync.oplog"),
+    	no_index(false),
+    	is_mongos(false),
+    	bg_num(10),
 		batch_size(16*1024*1024) {
-   }
+   	}
 
 	std::string src_ip_port;
 	std::string src_user;
 	std::string src_passwd;
 	std::string src_auth_db;
 	bool src_use_mcr;
-  bool is_mongos;
+  	bool is_mongos;
 
-  std::string shard_user;
-  std::string shard_passwd;
+  	std::string shard_user;
+  	std::string shard_passwd;
 
 	std::string dst_ip_port;
 	std::string dst_user;
@@ -73,7 +74,7 @@ struct Options {
 	std::string dst_auth_db;
 	bool dst_use_mcr;
 
-//the database or collection to be transfered	
+	//the database or collection to be transfered	
 	std::string db;
 	std::string dst_db;
 	std::string coll;
@@ -96,16 +97,16 @@ struct Options {
 	std::string log_level;
 	std::string log_dir;
 
-  void ParseCommand(int argc, char** argv);
-  void LoadConf(const std::string &conf_file);
+  	void ParseCommand(int argc, char** argv);
+  	void LoadConf(const std::string &conf_file);
 	bool ValidCheck();
 private:
-  std::map<std::string, std::string> items_;
-  bool GetConfBool(const std::string &item_key, bool *value);
-  int32_t GetConfInt(const std::string &item_key, int32_t *value);
-  bool GetConfStr(const std::string &item_key, std::string *value);
-  bool GetConfQuery(const std::string &item_key, mongo::Query *value);
-  bool GetConfOplogTime(const std::string &item_key, OplogTime *value);
+	std::map<std::string, std::string> items_;
+  	bool GetConfBool(const std::string &item_key, bool *value);
+  	int32_t GetConfInt(const std::string &item_key, int32_t *value);
+  	bool GetConfStr(const std::string &item_key, std::string *value);
+  	bool GetConfQuery(const std::string &item_key, mongo::Query *value);
+  	bool GetConfOplogTime(const std::string &item_key, OplogTime *value);
 };
 
 class NamespaceString {
@@ -151,19 +152,16 @@ class MongoSync {
 public:
 	static MongoSync* NewMongoSync(const Options *opt);
 	static mongo::DBClientConnection* ConnectAndAuth(const std::string &srv_ip_port,
-                                                   const std::string &auth_db,
-                                                   const std::string &user,
-                                                   const std::string &passwd,
-                                                   const bool use_mcr,
-                                                   const bool bg = false);
+		const std::string &auth_db, const std::string &user, 
+		const std::string &passwd, const bool use_mcr, const bool bg = false);
 	MongoSync(const Options *opt);
 	~MongoSync();
 	int32_t InitConn();
-  bool IsMasterMongo();
+  	bool IsMasterMongo();
 
-  // Used when sourse is mongos
-  std::vector<std::string> GetShards();
-  bool IsBalancerRunning();
+  	// Used when sourse is mongos
+  	std::vector<std::string> GetShards();
+  	bool IsBalancerRunning();
 
 	void Process();
 	void CloneOplog();
@@ -185,23 +183,32 @@ private:
 	//const static std::string oplog_ns_ = "local.oplog.rs"; // TODO: Is it const
 	const static std::string oplog_ns_;
 
-  // Used for LOG
-  std::string MONGOSYNC_PROMPT;
+  	// Used for LOG
+  	std::string MONGOSYNC_PROMPT;
 
-  //backgroud thread for Batch write
-  util::BGThreadGroup bg_thread_group_; 
+  	//backgroud thread for Batch write
+  	util::BGThreadGroup bg_thread_group_; 
 
 	void CloneCollIndex(std::string sns, std::string dns);
 	void GenericProcessOplog(OplogProcessOp op);
-	bool ProcessSingleOplog(const std::string& db, const std::string& coll, std::string dst_db, std::string dst_coll, const mongo::BSONObj& oplog, const OplogProcessOp op);
-	void ApplyInsertOplog(const std::string& dst_db, const std::string& dst_coll, const mongo::BSONObj& oplog);
-	void ApplyCmdOplog(std::string dst_db, const std::string& dst_coll, const mongo::BSONObj& oplog, bool same_coll = true);
-	OplogTime GetSideOplogTime(mongo::DBClientConnection* conn, std::string ns, std::string db, std::string coll, bool first_or_last); //first_or_last==true->get the first timestamp; first_or_last==false->get the last timestamp
+	bool ProcessSingleOplog(const std::string& db, const std::string& coll, 
+		std::string dst_db, std::string dst_coll, const mongo::BSONObj& oplog, 
+		const OplogProcessOp op);
+	void ApplyInsertOplog(const std::string& dst_db, const std::string& dst_coll, 
+		const mongo::BSONObj& oplog);
+	void ApplyCmdOplog(std::string dst_db, const std::string& dst_coll, 
+		const mongo::BSONObj& oplog, bool same_coll = true);
+	OplogTime GetSideOplogTime(mongo::DBClientConnection* conn, std::string ns, 
+		std::string db, std::string coll, bool first_or_last); 
+	//first_or_last==true->get the first timestamp; first_or_last==false->get the last timestamp
 
 	std::string GetMongoVersion(mongo::DBClientConnection* conn);
-	int GetCollIndexesByVersion(mongo::DBClientConnection* conn, std::string version, std::string ns, mongo::BSONObj& indexes);
-	void SetCollIndexesByVersion(mongo::DBClientConnection* conn, std::string version, std::string coll_full_name, mongo::BSONObj index);
-	int GetAllCollByVersion(mongo::DBClientConnection* conn, std::string version, std::string db, std::vector<std::string>& colls);
+	int GetCollIndexesByVersion(mongo::DBClientConnection* conn, 
+		std::string version, std::string ns, mongo::BSONObj& indexes);
+	void SetCollIndexesByVersion(mongo::DBClientConnection* conn, 
+		std::string version, std::string coll_full_name, mongo::BSONObj index);
+	int GetAllCollByVersion(mongo::DBClientConnection* conn, 
+		std::string version, std::string db, std::vector<std::string>& colls);
 	
 
 
@@ -210,20 +217,25 @@ private:
 	}
 
 	bool need_clone_all_db() {
-		return !opt_.raw_oplog && opt_.db.empty() && opt_.coll.empty() && opt_.oplog_start.empty() && opt_.oplog_end.empty();
+		return !opt_.raw_oplog && opt_.db.empty() && opt_.coll.empty() 
+			&& opt_.oplog_start.empty() && opt_.oplog_end.empty();
 	}
 
 	bool need_clone_db() {
-		return !opt_.raw_oplog && !opt_.db.empty() && opt_.coll.empty() && opt_.oplog_start.empty() && opt_.oplog_end.empty();
+		return !opt_.raw_oplog && !opt_.db.empty() && opt_.coll.empty() 
+			&& opt_.oplog_start.empty() && opt_.oplog_end.empty();
 		/*
-		 * opt_.raw_oplog && (!opt_.db.empty() && opt_.coll.empty() && opt_.oplog_start.empty() && opt_.oplog_end.empty()
-		 * || opt_.db.empty() && opt_.coll.empty() && opt_.oplog_start.empty() && opt_.oplog_end.empty());
+		 * opt_.raw_oplog && (!opt_.db.empty() && opt_.coll.empty() 
+		 * && opt_.oplog_start.empty() && opt_.oplog_end.empty()
+		 * || opt_.db.empty() && opt_.coll.empty() && opt_.oplog_start.empty() 
+		 * && opt_.oplog_end.empty());
 		 * 
 		 * */
 	}
 
 	bool need_clone_coll() {
-		return !opt_.raw_oplog && !opt_.coll.empty() && opt_.oplog_start.empty() && opt_.oplog_end.empty();
+		return !opt_.raw_oplog && !opt_.coll.empty() && opt_.oplog_start.empty() 
+			&& opt_.oplog_end.empty();
 	}
 
 	bool need_sync_oplog() {

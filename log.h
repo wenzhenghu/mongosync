@@ -10,36 +10,36 @@
 #include <stdint.h>
 namespace mlog {
 
-enum LogLevel {
-	kDebug,
-	kInfo,
-	kWarn,
-	kFatal,
-	kMaxLevel
-};
+	enum LogLevel {
+		kDebug,
+		kInfo,
+		kWarn,
+		kFatal,
+		kMaxLevel
+	};
 
-extern LogLevel work_level;
-extern pthread_mutex_t mlock;
+	extern LogLevel work_level;
+	extern pthread_mutex_t mlock;
 
-class Log {
-public:
-	Log(const LogLevel level);
-  ~Log();
+	class Log {
+	public:
+		Log(const LogLevel level);
+	  ~Log();
 
-	std::stringstream& strm() {
-		return strm_;
-	}
+		std::stringstream& strm() {
+			return strm_;
+		}
 
-private:
-	std::stringstream strm_;
-	LogLevel self_level_;
-};
+	private:
+		std::stringstream strm_;
+		LogLevel self_level_;
+	};
 
-void Init(const LogLevel level = kInfo, const std::string &log_dir = "./log", const std::string &file_prefix = "", const bool screen_out = true);
-bool SetLogLevel(const std::string &level_str);
-bool SetLogDir(const std::string &level_dir);
+	void Init(const LogLevel level = kDebug, const std::string &log_dir = "./log", const std::string &file_prefix = "", const bool screen_out = true);
+	bool SetLogLevel(const std::string &level_str);
+	bool SetLogDir(const std::string &level_dir);
 
-std::string GetLevelStr();
+	std::string GetLevelStr();
 
 }
 

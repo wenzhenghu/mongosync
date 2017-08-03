@@ -15,12 +15,12 @@
 #include "mongo/util/mongoutils/str.h"
 
 static void GetSeparateArgs(const std::string& raw_str, std::vector<std::string>* argv_p) {
-  const char* p = raw_str.data();
-  const char *pch = strtok(const_cast<char*>(p), " ");
-  while (pch != NULL) {
-    argv_p->push_back(std::string(pch));
-    pch = strtok(NULL, " ");
-  }
+  	const char* p = raw_str.data();
+  	const char *pch = strtok(const_cast<char*>(p), " ");
+  	while (pch != NULL) {
+    	argv_p->push_back(std::string(pch));
+    	pch = strtok(NULL, " ");
+  	}
 }
 
 static bool before(const OplogTime& t1, const OplogTime& t2) {
@@ -30,7 +30,7 @@ static bool before(const OplogTime& t1, const OplogTime& t2) {
 static void Usage() {
 	std::cerr << "Follow is the mongosync-surpported options: " << std::endl;	
 	std::cerr << "--help                   to get the help message" << std::endl;
-  std::cerr << "-c conf.file             use config file to start mongosync" << std::endl;
+  	std::cerr << "-c conf.file             use config file to start mongosync" << std::endl;
 	std::cerr << "--src_srv arg            the source mongodb server's ip port" << std::endl;
 	std::cerr << "--src_user arg           the source mongodb server's logging user" << std::endl;
 	std::cerr << "--src_passwd arg         the source mongodb server's logging password" << std::endl;
@@ -62,7 +62,7 @@ static void Usage() {
 }
 
 #define CHECK_ARGS_NUM() \
-	  if (argc <= idx + 1) { \
+	if (argc <= idx + 1) { \
 			    LOG(FATAL) << "Wrong argument number" << std::endl; \
 			    Usage(); \
 			    exit(-1); \
@@ -106,7 +106,7 @@ void Options::ParseCommand(int argc, char** argv) {
 			CHECK_ARGS_NUM();
 			dst_auth_db = argv[++idx];
 		} else if (strcasecmp(argv[idx], "--is_mongos") == 0) {
-      is_mongos = true;
+      		is_mongos = true;
 		} else if (strcasecmp(argv[idx], "--shard_user") == 0) {
 			CHECK_ARGS_NUM();
 			shard_user = argv[++idx];
@@ -172,71 +172,75 @@ void Options::ParseCommand(int argc, char** argv) {
 			Usage();
 			exit(-1);
 		}
+		
 		++idx;
 	}
 }
 
 void Options::LoadConf(const std::string &conf_file) {
-  std::ifstream in(conf_file.c_str());
-  if (!in.good()) {
+  	std::ifstream in(conf_file.c_str());
+  	if (!in.good()) {
 		LOG(FATAL) << "cannot open the specified conf file" << std::endl;
-    exit(-1);
-  }
-  std::string line, item_key, item_value;
-  std::string::size_type pos;
-  int32_t line_no;
-  while (!in.eof()) {
-    ++line_no;
-    getline(in, line);
+    	exit(-1);
+  	}
 
-    line = util::Trim(line);
-    if (line.empty() || line.at(0) == '#') {
-      continue;
-    }
-    if ((pos = line.find("=")) == std::string::npos
-        || pos == (line.size() - 1)) {
-      LOG(WARN) << "error item format at " << line_no << "line in " << conf_file << std::endl;
-      continue;
-    }
+	std::string line, item_key, item_value;
+  	std::string::size_type pos;
+  	int32_t line_no;
 
-    item_key = line.substr(0, pos);
-    item_key = util::Trim(item_key);
-    item_value = line.substr(pos + 1);
-    item_value = util::Trim(item_value);
+	while (!in.eof()) {
+    	++line_no;
+    	getline(in, line);
 
-    items_[item_key] = item_value; 
-  }
-  in.close();
+    	line = util::Trim(line);
+    	if (line.empty() || line.at(0) == '#') {
+      		continue;
+    	}
+		
+    	if ((pos = line.find("=")) == std::string::npos || pos == (line.size() - 1)) {
+      		LOG(WARN) << "error item format at " << line_no << "line in " << conf_file << std::endl;
+      		continue;
+    	}
 
-  GetConfStr("src_srv", &src_ip_port);
-  GetConfStr("src_user", &src_user);
-  GetConfStr("src_passwd", &src_passwd);
-  GetConfStr("src_auth_db", &src_auth_db);
-  GetConfBool("src_use_mcr", &src_use_mcr);
-  GetConfStr("db", &db);
-  GetConfStr("coll", &coll);
-  GetConfStr("colls", &colls);
+    	item_key = line.substr(0, pos);
+    	item_key = util::Trim(item_key);
+    	item_value = line.substr(pos + 1);
+    	item_value = util::Trim(item_value);
 
-  GetConfBool("is_mongos", &is_mongos);
-  GetConfStr("shard_user", &shard_user);
-  GetConfStr("shard_passwd", &shard_passwd);
+    	items_[item_key] = item_value; 
+  	}
 
-  GetConfStr("dst_srv", &dst_ip_port);
-  GetConfStr("dst_user", &dst_user);
-  GetConfStr("dst_passwd", &dst_passwd);
-  GetConfStr("dst_auth_db", &dst_auth_db);
-  GetConfBool("dst_use_mcr", &dst_use_mcr);
-  GetConfStr("dst_db", &dst_db);
-  GetConfStr("dst_coll", &dst_coll);
+  	in.close();
 
-  GetConfBool("oplog", &oplog);   
-  GetConfBool("raw_oplog", &raw_oplog);   
-  GetConfOplogTime("op_start", &oplog_start);   
-  GetConfOplogTime("op_end", &oplog_end);
-  GetConfStr("dst_op_ns", &dst_oplog_ns);
-  GetConfBool("no_index", &no_index);
+  	GetConfStr("src_srv", &src_ip_port);
+  	GetConfStr("src_user", &src_user);
+  	GetConfStr("src_passwd", &src_passwd);
+  	GetConfStr("src_auth_db", &src_auth_db);
+  	GetConfBool("src_use_mcr", &src_use_mcr);
+  	GetConfStr("db", &db);
+  	GetConfStr("coll", &coll);
+  	GetConfStr("colls", &colls);
 
-  GetConfQuery("filter", &filter);    
+  	GetConfBool("is_mongos", &is_mongos);
+  	GetConfStr("shard_user", &shard_user);
+  	GetConfStr("shard_passwd", &shard_passwd);
+
+  	GetConfStr("dst_srv", &dst_ip_port);
+  	GetConfStr("dst_user", &dst_user);
+  	GetConfStr("dst_passwd", &dst_passwd);
+  	GetConfStr("dst_auth_db", &dst_auth_db);
+  	GetConfBool("dst_use_mcr", &dst_use_mcr);
+  	GetConfStr("dst_db", &dst_db);
+  	GetConfStr("dst_coll", &dst_coll);
+
+  	GetConfBool("oplog", &oplog);   
+  	GetConfBool("raw_oplog", &raw_oplog);   
+  	GetConfOplogTime("op_start", &oplog_start);   
+  	GetConfOplogTime("op_end", &oplog_end);
+  	GetConfStr("dst_op_ns", &dst_oplog_ns);
+  	GetConfBool("no_index", &no_index);
+
+  	GetConfQuery("filter", &filter);    
 
 	GetConfInt("bg_num", &bg_num);
 	GetConfInt("batch_size", &batch_size);
@@ -246,25 +250,26 @@ void Options::LoadConf(const std::string &conf_file) {
 
 
 #define CHECK_ITEM_EXIST(item_key, iter) \
-  std::map<std::string, std::string>::const_iterator iter; \
-  do { \
-    if ((iter = items_.find(item_key)) == items_.end()) { \
-      return false; \
+  	std::map<std::string, std::string>::const_iterator iter; \
+  	do { \
+    	if ((iter = items_.find(item_key)) == items_.end()) { \
+      	return false; \
     } \
-  } while (false)
+} while (false)
 
 bool Options::GetConfBool(const std::string &item_key, bool *value) {
-  CHECK_ITEM_EXIST(item_key, iter);
+  	CHECK_ITEM_EXIST(item_key, iter);
   
-  if (strcasecmp(iter->second.c_str(), "on") == 0) {
-    *value = true;
-  } else if (strcasecmp(iter->second.c_str(), "off") == 0) {
-    *value = false;
-  } else {
-    LOG(WARN) << item_key << " item in conf file is not BOOL" << std::endl;
-    return false;
-  }
-  return true;
+  	if (strcasecmp(iter->second.c_str(), "on") == 0) {
+    	*value = true;
+  	} else if (strcasecmp(iter->second.c_str(), "off") == 0) {
+    	*value = false;
+  	} else {
+    	LOG(WARN) << item_key << " item in conf file is not BOOL" << std::endl;
+    	return false;
+  	}
+	
+  	return true;
 }
 
 int32_t Options::GetConfInt(const std::string &item_key, int32_t *value) {
@@ -275,26 +280,26 @@ int32_t Options::GetConfInt(const std::string &item_key, int32_t *value) {
 }
 
 bool Options::GetConfStr(const std::string &item_key, std::string *value) {
-  CHECK_ITEM_EXIST(item_key, iter);
+  	CHECK_ITEM_EXIST(item_key, iter);
   
-  *value = iter->second;
-  return true;
+  	*value = iter->second;
+  	return true;
 }
 
 bool Options::GetConfQuery(const std::string &item_key, mongo::Query *value) {
-  CHECK_ITEM_EXIST(item_key, iter);
+  	CHECK_ITEM_EXIST(item_key, iter);
   
-  *value = mongo::Query(iter->second);
-  return true;
+ 	*value = mongo::Query(iter->second);
+  	return true;
 }
 
 bool Options::GetConfOplogTime(const std::string &item_key, OplogTime *value) {
-  CHECK_ITEM_EXIST(item_key, iter);
+  	CHECK_ITEM_EXIST(item_key, iter);
   
-  std::string::size_type commas_pos = iter->second.find(",");
-  value->sec = atoi(iter->second.substr(0, commas_pos).c_str());
-  value->no = atoi(iter->second.substr(commas_pos+1).c_str());
-  return true;
+  	std::string::size_type commas_pos = iter->second.find(",");
+  	value->sec = atoi(iter->second.substr(0, commas_pos).c_str());
+  	value->no = atoi(iter->second.substr(commas_pos+1).c_str());
+  	return true;
 }
 
 bool Options::ValidCheck() {
@@ -323,29 +328,29 @@ bool Options::ValidCheck() {
 
 
 MongoSync::MongoSync(const Options *opt)
-	: opt_(*opt),
+  : opt_(*opt),
 	src_conn_(NULL),
 	dst_conn_(NULL),
-  bg_thread_group_(opt->dst_ip_port,
+  	bg_thread_group_(opt->dst_ip_port,
                    opt->dst_auth_db,
                    opt->dst_user,
                    opt->dst_passwd,
                    opt->dst_use_mcr,
                    opt->bg_num) {
-  if (opt->is_mongos) {
-    // [mongosync_127.0.0.1:8099]
-    MONGOSYNC_PROMPT = PROMPT_PREFIX + "_" + opt->src_ip_port + "]\t";
-  } else {
-    // [mongosync]
-    MONGOSYNC_PROMPT = PROMPT_PREFIX + "]\t";
-  }
+  	if (opt->is_mongos) {
+    	// [mongosync_127.0.0.1:8099]
+    	MONGOSYNC_PROMPT = PROMPT_PREFIX + "_" + opt->src_ip_port + "]\t";
+  	} else {
+    	// [mongosync]
+    	MONGOSYNC_PROMPT = PROMPT_PREFIX + "]\t";
+  	}
 }
-
 
 MongoSync::~MongoSync() {
 	if (src_conn_) {
 		delete src_conn_;
 	}
+	
 	if (dst_conn_) {
 		delete dst_conn_;
 	}
@@ -361,50 +366,53 @@ MongoSync* MongoSync::NewMongoSync(const Options *opt) {
 }
 
 bool MongoSync::IsMasterMongo() {
-  mongo::BSONObj tmp;
-  if (!src_conn_->runCommand("db", BSON("isMaster" << 1), tmp, mongo::QueryOption_SlaveOk)) {
-    LOG(FATAL) << "runCommand db.isMaster()" << std::endl;
-    return true;
-  }
-  if (!tmp.getBoolField("secondary")) {
-    LOG(INFO) << opt_.src_ip_port << " is MASTER" << std::endl;
-    return true; 
-  }
-  return false;
+  	mongo::BSONObj tmp;
+  	if (!src_conn_->runCommand("db", BSON("isMaster" << 1), tmp, mongo::QueryOption_SlaveOk)) {
+    	LOG(FATAL) << "runCommand db.isMaster()" << std::endl;
+    	return true;
+  	}
+	
+  	if (!tmp.getBoolField("secondary")) {
+    	LOG(INFO) << opt_.src_ip_port << " is MASTER" << std::endl;
+    	return true; 
+  	}
+	
+  	return false;
 }
 
 mongo::DBClientConnection* MongoSync::ConnectAndAuth(const std::string &srv_ip_port,
-                                                     const std::string &auth_db,
-                                                     const std::string &user,
-                                                     const std::string &passwd,
-                                                     const bool use_mcr,
-                                                     const bool bg) {
+		const std::string &auth_db, const std::string &user, const std::string &passwd,
+        const bool use_mcr, const bool bg) {
+        
 	std::string errmsg;
 	mongo::DBClientConnection* conn = NULL;
 	conn = new mongo::DBClientConnection();	
 	if (!conn->connect(srv_ip_port, errmsg)) {
 		LOG(FATAL) << util::GetFormatTime() << "connect to srv: " << srv_ip_port
-      << " failed, with errmsg: " << errmsg << std::endl;
+      		<< " failed, with errmsg: " << errmsg << std::endl;
 		delete conn;
 		return NULL;
 	}
-  if (!bg) {
-    LOG(INFO) << util::GetFormatTime() << "connect to srv_rsv: " << srv_ip_port
-      << " ok!" << std::endl;
-  }
+	
+  	if (!bg) {
+    	LOG(INFO) << util::GetFormatTime() << "connect to srv_rsv: " << srv_ip_port
+      		<< " ok!" << std::endl;
+  	}
 
 	if (!passwd.empty()) {
 		if (!conn->auth(auth_db, user, passwd, errmsg, use_mcr)) {
 			LOG(FATAL) << util::GetFormatTime() << "srv: " << srv_ip_port
-        << ", dbname: " << auth_db << " failed" << std::endl; 
+        		<< ", dbname: " << auth_db << " failed" << std::endl; 
 			delete conn;
 			return NULL;
 		}
-    if (!bg) {
-		  LOG(INFO) << util::GetFormatTime() << "srv: " << srv_ip_port
-        << ", dbname: " << auth_db << " ok!" << std::endl;
-    }
+		
+    	if (!bg) {
+		  	LOG(INFO) << util::GetFormatTime() << "srv: " << srv_ip_port
+        		<< ", dbname: " << auth_db << " ok!" << std::endl;
+    	}
 	}
+	
 	return conn;
 }
 
@@ -421,27 +429,31 @@ int32_t MongoSync::InitConn() {
                                    opt_.dst_use_mcr))) {
 		return -1;	
 	}
+	
 	src_version_ = GetMongoVersion(src_conn_);
 	dst_version_ = GetMongoVersion(dst_conn_);
 	return 0;
 }
 
 std::vector<std::string> MongoSync::GetShards() {
-  std::vector<std::string> shards;
-  std::auto_ptr<mongo::DBClientCursor> cursor = \
+  	std::vector<std::string> shards;
+  	std::auto_ptr<mongo::DBClientCursor> cursor = \
     src_conn_->query("config.shards",
                      mongo::Query().snapshot(), 0, 0, NULL,
                      mongo::QueryOption_SlaveOk | mongo::QueryOption_NoCursorTimeout);
-  if (cursor.get() == NULL) {
-    return shards;
-  }
-  mongo::BSONObj tmp;
-  while (cursor->more()) {
-    tmp = cursor->next();
-    std::string shard = tmp.getStringField("host");
-    shards.push_back(shard);
-  }
-  return shards;
+
+	if (cursor.get() == NULL) {
+    	return shards;
+  	}
+	
+  	mongo::BSONObj tmp;
+  	while (cursor->more()) {
+    	tmp = cursor->next();
+    	std::string shard = tmp.getStringField("host");
+    	shards.push_back(shard);
+  	}
+	
+  	return shards;
 }
 
 bool MongoSync::IsBalancerRunning() {
@@ -449,27 +461,29 @@ bool MongoSync::IsBalancerRunning() {
                                           mongo::Query(BSON("_id" << "balancer")),
                                           NULL,
                                           mongo::QueryOption_SlaveOk).getOwned();
-  if (obj.isEmpty())
-    return true;
+  	if (obj.isEmpty())
+    	return true;
 
-  std::string balancer_state = obj.jsonString();
-  if (balancer_state.find("stopped") != std::string::npos &&
-      balancer_state.find("true") != std::string::npos)
-    return false;
+	std::string balancer_state = obj.jsonString();
+  	if (balancer_state.find("stopped") != std::string::npos &&
+      	balancer_state.find("true") != std::string::npos)
+    	return false;
 
-  return true;
+  	return true;
 }
 
 void MongoSync::Process() {
-  if (need_sync_oplog()) {
-    oplog_begin_ = opt_.oplog_start;
-    if ((need_clone_all_db() || need_clone_db() || need_clone_coll()) && opt_.oplog_start.empty()) {
-      oplog_begin_ = GetSideOplogTime(src_conn_, oplog_ns_, "", "", false);
-    } else if (opt_.oplog_start.empty()) {
-      oplog_begin_ = GetSideOplogTime(src_conn_, oplog_ns_, opt_.db, opt_.coll, true);
-    }
-    oplog_finish_ = opt_.oplog_end;
-  }
+  	if (need_sync_oplog()) {
+    	oplog_begin_ = opt_.oplog_start;
+
+		if ((need_clone_all_db() || need_clone_db() || need_clone_coll()) && opt_.oplog_start.empty()) {
+	      	oplog_begin_ = GetSideOplogTime(src_conn_, oplog_ns_, "", "", false);
+	    } else if (opt_.oplog_start.empty()) {
+	      	oplog_begin_ = GetSideOplogTime(src_conn_, oplog_ns_, opt_.db, opt_.coll, true);
+	    }
+		
+	    oplog_finish_ = opt_.oplog_end;
+  	}
 
 	if (need_clone_oplog()) {
 		CloneOplog();
@@ -482,7 +496,8 @@ void MongoSync::Process() {
 		CloneDb();
 	} else if (need_clone_coll()) {
 		std::string sns = opt_.db + "." + opt_.coll;
-		std::string dns = (opt_.dst_db.empty() ? opt_.db : opt_.dst_db) + "." + (opt_.dst_coll.empty() ? opt_.coll : opt_.dst_coll);
+		std::string dns = (opt_.dst_db.empty() ? opt_.db : opt_.dst_db) + "." 
+			+ (opt_.dst_coll.empty() ? opt_.coll : opt_.dst_coll);
 		CloneColl(sns, dns, opt_.batch_size);
 	}
 
@@ -501,32 +516,36 @@ void MongoSync::SyncOplog() {
 
 void MongoSync::GenericProcessOplog(OplogProcessOp op) {
 	mongo::Query query;	
+  	query = mongo::Query(BSON("$or" << BSON_ARRAY(BSON("ns" << BSON("$regex" << ("^"+opt_.db))) 
+		<< BSON("ns" << "admin.$cmd")) << "ts" << oplog_begin_.timestamp()));
 
-  query = mongo::Query(BSON("$or" << BSON_ARRAY(BSON("ns" << BSON("$regex" << ("^"+opt_.db))) << BSON("ns" << "admin.$cmd")) << "ts" << oplog_begin_.timestamp()));
+  	LOG(DEBUG) << "find oplog begin position with query :" << query.toString() << std::endl;
 
-  LOG(DEBUG) << "find oplog begin position with query :" << query.toString() << std::endl;
+  	mongo::BSONObj obj = src_conn_->findOne(oplog_ns_, query, NULL, mongo::QueryOption_SlaveOk);
 
-  mongo::BSONObj obj = src_conn_->findOne(oplog_ns_, query, NULL, mongo::QueryOption_SlaveOk);
-
-  LOG(DEBUG) << "find oplog begin position return :" << obj.toString() << std::endl;
+  	LOG(DEBUG) << "find oplog begin position return :" << obj.toString() << std::endl;
   
-  if (obj.isEmpty()) {
-    LOG(FATAL) << "Can not find oplog at " << oplog_begin_.sec << ","
-      << oplog_begin_.no << std::endl;
-    return;
-  }
+  	if (obj.isEmpty()) {
+    	LOG(FATAL) << "Can not find oplog at " << oplog_begin_.sec << ","
+      		<< oplog_begin_.no << std::endl;
+    	return;
+  	}
 
 	if (/* !opt_.db.empty() &&*/ opt_.coll.empty()) { // both specifying db name and not specifying
-		query = mongo::Query(BSON("$or" << BSON_ARRAY(BSON("ns" << BSON("$regex" << ("^"+opt_.db))) << BSON("ns" << "admin.$cmd")) << "ts" << mongo::GTE << oplog_begin_.timestamp() << mongo::LTE << oplog_finish_.timestamp())); //TODO: this cannot exact out the opt_.db related oplog, but the opt_.db-prefixed related oplog
+		query = mongo::Query(BSON("$or" << BSON_ARRAY(BSON("ns" << BSON("$regex" << ("^"+opt_.db))) 
+			<< BSON("ns" << "admin.$cmd")) << "ts" << mongo::GTE << oplog_begin_.timestamp() 
+			<< mongo::LTE << oplog_finish_.timestamp())); 
+		//TODO: this cannot exact out the opt_.db related oplog, but the opt_.db-prefixed related oplog
 	} else if (!opt_.db.empty() && !opt_.coll.empty()) {
 		NamespaceString ns(opt_.db, opt_.coll);
-		query = mongo::Query(BSON("$or" << BSON_ARRAY(BSON("ns" << ns.ns()) << BSON("ns" << ns.db() + ".system.indexes") << BSON("ns" << ns.db() + ".$cmd") << BSON("ns" << "admin.$cmd"))
-					<< "ts" << mongo::GTE << oplog_begin_.timestamp() << mongo::LTE << oplog_finish_.timestamp()));
+		query = mongo::Query(BSON("$or" << BSON_ARRAY(BSON("ns" << ns.ns()) 
+			<< BSON("ns" << ns.db() + ".system.indexes") << BSON("ns" << ns.db() + ".$cmd") << BSON("ns" << "admin.$cmd"))
+			<< "ts" << mongo::GTE << oplog_begin_.timestamp() << mongo::LTE << oplog_finish_.timestamp()));
 	}
+	
 	std::auto_ptr<mongo::DBClientCursor> cursor = src_conn_->query(oplog_ns_, query, 0, 0, NULL,
-                                                                 mongo::QueryOption_CursorTailable |
-                                                                 mongo::QueryOption_AwaitData |
-                                                                 mongo::QueryOption_NoCursorTimeout);
+		mongo::QueryOption_CursorTailable | mongo::QueryOption_AwaitData | mongo::QueryOption_NoCursorTimeout);
+	
 	std::string dst_db, dst_coll;
 	if (need_clone_oplog()) {
 		NamespaceString ns(opt_.dst_oplog_ns);
@@ -541,81 +560,98 @@ void MongoSync::GenericProcessOplog(OplogProcessOp op) {
 	OplogTime cur_times, pre_times(0, 0);
 	char time_buf[32];
 	bool waiting = false;
-  bool cursor_dead = false;
+  	bool cursor_dead = false;
 	int64_t pre = 0, cur;
 
 	while (true) {
 		while (!cursor->more()) {
-      if (cursor->isDead()) {
-        mongo::BSONObj error;
-        if (cursor->peekError(&error)) {
-          LOG(FATAL) << MONGOSYNC_PROMPT << error.toString() << std::endl;
-        } else {
-          LOG(FATAL) << MONGOSYNC_PROMPT << "no cursor error" << std::endl;
-        }
-        cursor_dead = true;
-        LOG(FATAL) << MONGOSYNC_PROMPT << "cursor is dead, try rebuild" << std::endl;
-        cursor = src_conn_->query(oplog_ns_, query, 0, 0, NULL,
-                                  mongo::QueryOption_CursorTailable |
-                                  mongo::QueryOption_AwaitData |
-                                  mongo::QueryOption_NoCursorTimeout);
-        continue;
-      }
+	      	if (cursor->isDead()) {
+	        	mongo::BSONObj error;
+
+				if (cursor->peekError(&error)) {
+	          		LOG(FATAL) << MONGOSYNC_PROMPT << error.toString() << std::endl;
+	        	} else {
+	          		LOG(FATAL) << MONGOSYNC_PROMPT << "no cursor error" << std::endl;
+	        	}
+				
+	        	cursor_dead = true;
+	        	LOG(FATAL) << MONGOSYNC_PROMPT << "cursor is dead, try rebuild" << std::endl;
+	        	cursor = src_conn_->query(oplog_ns_, query, 0, 0, NULL,
+	                                  mongo::QueryOption_CursorTailable |
+	                                  mongo::QueryOption_AwaitData |
+	                                  mongo::QueryOption_NoCursorTimeout);
+
+				continue;
+	      	}
+			
 			if (*reinterpret_cast<uint64_t*>(&oplog_finish_) != static_cast<uint64_t>(-1LL)) {
 				if (!cur_times.empty() && before(pre_times, cur_times)) {
-					LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "synced up to " << cur_times.sec << "," << cur_times.no << " (" << util::GetFormatTime(cur_times.sec) << ")" << std::endl;
+					LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "synced up to " 
+						<< cur_times.sec << "," << cur_times.no << " (" 
+						<< util::GetFormatTime(cur_times.sec) << ")" << std::endl;
 				}
+				
 				return;
 			}
 
 			if (!waiting) {
 				if (!cur_times.empty() && before(pre_times, cur_times)) {
 					pre_times = cur_times;	
-					LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "synced up to " << cur_times.sec << "," << cur_times.no << " (" << util::GetFormatTime(cur_times.sec) << ")" << std::endl;
+					LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "synced up to " 
+						<< cur_times.sec << "," << cur_times.no << " (" 
+						<< util::GetFormatTime(cur_times.sec) << ")" << std::endl;
 				}
+				
 				LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "waiting for new data..." << std::endl;
 				waiting = true;
 			}
 
 			sleep(1);
 		}
-    // cursor dead but rebuild
-    if (cursor_dead) {
-      cursor_dead = false;
-      LOG(WARN) << MONGOSYNC_PROMPT << "cursor rebuild success!" << std::endl;
-    }
+		
+    	// cursor dead but rebuild
+    	if (cursor_dead) {
+      		cursor_dead = false;
+      		LOG(WARN) << MONGOSYNC_PROMPT << "cursor rebuild success!" << std::endl;
+    	}
+		
 		waiting = false;
 
 		oplog = cursor->next();
 		if (ProcessSingleOplog(opt_.db, opt_.coll, dst_db, dst_coll, oplog.getOwned(), op)) {
 			memcpy(&cur_times, oplog["ts"].value(), 2*sizeof(int32_t));
 		}
+		
 		time(&cur);
 		if (cur > pre && !cur_times.empty() && before(pre_times, cur_times)) {
 			pre = cur;
-      if (cur - cur_times.sec < 20) {
-        LOG(INFO) << MONGOSYNC_PROMPT << "Syncronization almost done" << std::endl;
-      }
+
+	  		if (cur - cur_times.sec < 20) {
+        		LOG(INFO) << MONGOSYNC_PROMPT << "Syncronization almost done" << std::endl;
+     		}
+			
 			pre_times = cur_times;
-			LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "synced up to " << cur_times.sec << "," << cur_times.no << " (" << util::GetFormatTime(cur_times.sec) << ")" << std::endl;
+			LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "synced up to " 
+				<< cur_times.sec << "," << cur_times.no << " (" 
+				<< util::GetFormatTime(cur_times.sec) << ")" << std::endl;
 		}
 	}
 }
 
 void MongoSync::CloneAllDb() {
 	mongo::Query q = BSON("listDatabases" << 1);
-	mongo::BSONObj obj = src_conn_->findOne("admin.$cmd", q, NULL, mongo::QueryOption_SlaveOk).getObjectField("databases").getOwned();
+	mongo::BSONObj obj = src_conn_->findOne("admin.$cmd", q, NULL, 
+		mongo::QueryOption_SlaveOk).getObjectField("databases").getOwned();
 	std::set<std::string> fields;
 	obj.getFieldNames(fields);
 	std::string db;
 
 	for (std::set<std::string>::iterator iter = fields.begin(); iter != fields.end(); ++iter) {
 		db = obj.getObjectField(*iter).getStringField("name");
-		if (db == "admin" ||
-        db == "local" ||
-        db == "config") {
+		if (db == "admin" || db == "local" || db == "config") {
 			continue;
 		}
+		
 		CloneDb(db);
 	}
 }
@@ -626,41 +662,47 @@ void MongoSync::CloneDb(std::string db) {
 	}
 
 	std::vector<std::string> colls;
-  if (!opt_.colls.empty()) {
-    util::Split(opt_.colls, ',', colls);
-  } else if (GetAllCollByVersion(src_conn_, src_version_, db, colls) == -1) { // get collections failed
-    return;
-  }
+  	if (!opt_.colls.empty()) {
+    	util::Split(opt_.colls, ',', colls);
+  	} else if (GetAllCollByVersion(src_conn_, src_version_, db, colls) == -1) { // get collections failed
+    	return;
+  	}
 
 	std::string dst_db = opt_.dst_db.empty() ? db : opt_.dst_db;
-  LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "cloning db: " << db << " ----> " << dst_db << "\n" << std::endl;
+  	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "cloning db: " << db << " ----> " 
+		<< dst_db << "\n" << std::endl;
 	for (std::vector<std::string>::const_iterator iter = colls.begin();
-			iter != colls.end();
-			++iter) {
+			iter != colls.end(); ++iter) {
+				
 		CloneColl(db + "." + *iter, dst_db + "." + *iter, opt_.batch_size);
 	}
-  LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "clone db: " << db << " ----> " << dst_db << " finished\n" << std::endl;
+			
+  	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "clone db: " << db << " ----> " 
+		<< dst_db << " finished\n" << std::endl;
 }
 
 void MongoSync::CloneColl(std::string src_ns, std::string dst_ns, int batch_size) {
 //	std::string src_ns = opt_.db + "." + opt_.coll;
 //	std::string dst_ns = (opt_.dst_db.empty() ? opt_.db : opt_.dst_db) + "." + (opt_.dst_coll.empty() ? opt_.coll : opt_.dst_coll);
-	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "cloning "	<< src_ns << " to " << dst_ns << std::endl;
-	uint64_t total = src_conn_->count(src_ns, opt_.filter, mongo::QueryOption_SlaveOk | mongo::QueryOption_NoCursorTimeout), cnt = 0;
+	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "cloning " << src_ns << " to " << dst_ns << std::endl;
+	uint64_t total = 0, cnt = 0;
 	std::auto_ptr<mongo::DBClientCursor> cursor;
 	int32_t acc_size, percent, retries = 3;
 	uint64_t time_pre, time_cur;
 	char buf[32];
 
-  // Clone index
+	total = src_conn_->count(src_ns, opt_.filter, mongo::QueryOption_SlaveOk | mongo::QueryOption_NoCursorTimeout);
+
+ 	// Clone index
 	if (!opt_.no_index) {
 		CloneCollIndex(src_ns, dst_ns);
 	}
 
-  // Clone record
+  	// Clone record
 retry:
 	cursor = src_conn_->query(src_ns, opt_.filter.snapshot(), 0, 0, NULL,
                             mongo::QueryOption_SlaveOk | mongo::QueryOption_NoCursorTimeout);
+
 	std::vector<mongo::BSONObj> *batch = new std::vector<mongo::BSONObj>; //to be deleted by bg thread
 	acc_size = 0;
 	percent = 0;
@@ -673,24 +715,26 @@ retry:
 			acc_size += obj.objsize();
 			batch->push_back(obj.getOwned());
 			if (acc_size >= batch_size) {
-  	    bg_thread_group_.AddWriteUnit(dst_ns, batch);
-  	    batch = new std::vector<mongo::BSONObj>;
+  		    	bg_thread_group_.AddWriteUnit(dst_ns, batch);
+  	    		batch = new std::vector<mongo::BSONObj>;
 				acc_size = 0;
 			}
+			
 			++cnt;
 			if (!(cnt & 0xFF)) {
 				time_cur = time(NULL);
 				if (time_cur > time_pre) {
 					percent = cnt * 100 / total;
 					snprintf(buf, sizeof(buf), "%d/%d", cnt, total);
-					LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "cloing progress: " << std::setfill(' ') << std::setw(20) << buf << "\t"<< percent << "%" << "\t(objects)" << std::endl;
+					LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "cloing progress: " 
+						<< std::setfill(' ') << std::setw(20) << buf << "\t"<< percent << "%" << "\t(objects)" << std::endl;
 					time_pre = time_cur;
 				}
 			}
 		}
 		if (!batch->empty()) {
-//      dst_conn_->insert(dst_ns, batch, mongo::InsertOption_ContinueOnError, &mongo::WriteConcern::unacknowledged);
-  	  bg_thread_group_.AddWriteUnit(dst_ns, batch);
+//		    dst_conn_->insert(dst_ns, batch, mongo::InsertOption_ContinueOnError, &mongo::WriteConcern::unacknowledged);
+  	  		bg_thread_group_.AddWriteUnit(dst_ns, batch);
 		}
 	} catch (mongo::DBException &e) {
 		LOG(WARN) << "exception occurs: " << opt_.src_ip_port << e.toString() << ", retry it" << std::endl;
@@ -703,23 +747,26 @@ retry:
 		}
 	}
 
-  while (!bg_thread_group_.write_queue_p()->empty()) {
-    sleep(1);
-  }
+  	while (!bg_thread_group_.write_queue_p()->empty()) {
+    	sleep(1);
+  	}
 
-	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "clone "	<< src_ns << " to " << dst_ns << " success, total " << cnt << " objects\n" << std::endl;
+	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "clone "	<< src_ns << " to " << dst_ns 
+		<< " success, total " << cnt << " objects\n" << std::endl;
 }
 
 void MongoSync::CloneCollIndex(std::string sns, std::string dns) {
 	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "cloning " << sns << " indexes" << std::endl;
 	mongo::BSONObj indexes;
+	
 	if (GetCollIndexesByVersion(src_conn_, src_version_, sns, indexes) == -1) {
 		return;
 	}
+	
 	int32_t indexes_num = indexes.nFields(), idx = 0;
 	mongo::BSONElement element;
 	while (idx < indexes_num) {
-	  mongo::BSONObjBuilder builder;
+	  	mongo::BSONObjBuilder builder;
 		mongo::BSONObjIterator i(indexes.getObjectField(util::Int2Str(idx++)));
 		std::string field_name;
 		while (i.more()) {
@@ -730,22 +777,29 @@ void MongoSync::CloneCollIndex(std::string sns, std::string dns) {
 			}
 			builder << element;			
 		}
+		
 		builder << "background" << "true";
 		builder << "ns" << dns;
 		SetCollIndexesByVersion(dst_conn_, dst_version_, dns, builder.obj());
 	}
-	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "clone " << sns << " indexes success, total " << indexes_num << " objects\n" << std::endl;
+	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "clone " << sns << " indexes success, total " 
+		<< indexes_num << " objects\n" << std::endl;
 }
 
-bool MongoSync::ProcessSingleOplog(const std::string& db, const std::string& coll, std::string dst_db, std::string dst_coll, const mongo::BSONObj& oplog, const OplogProcessOp op) {
+bool MongoSync::ProcessSingleOplog(const std::string& db, const std::string& coll, 
+	std::string dst_db, std::string dst_coll, const mongo::BSONObj& oplog, const OplogProcessOp op) {
+
 	std::string oplog_ns = oplog.getStringField("ns");	
-	if (mongo::str::endsWith(oplog_ns, ".system.users")) { //filter all user related oplog, 2.4=>db.system.users, 3.x=>admin.system.users
+	if (mongo::str::endsWith(oplog_ns, ".system.users")) { 
+		// filter all user related oplog, 2.4=>db.system.users, 3.x=>admin.system.users
 		return false;
 	}
-	if (!db.empty() && coll.empty() && oplog_ns != "admin.$cmd") { //filter the same prefix db names, because of cannot filtering this situation with regex, and pass renameCollection command oplog(in admin.$cmd)
+	
+	if (!db.empty() && coll.empty() && oplog_ns != "admin.$cmd") { 
+		// filter the same prefix db names, because of cannot filtering this situation with regex, 
+		// and pass renameCollection command oplog(in admin.$cmd)
 		std::string sns = db + ".";
-		if (oplog_ns.size() < sns.size() 
-				|| oplog_ns.substr(0, sns.size()) != sns) {
+		if (oplog_ns.size() < sns.size() || oplog_ns.substr(0, sns.size()) != sns) {
 			return false;
 		}
 	}
@@ -754,6 +808,7 @@ bool MongoSync::ProcessSingleOplog(const std::string& db, const std::string& col
 		if (opt_.no_index) {
 			return false;
 		}
+		
 		std::string op_ns = oplog.getObjectField("o").getStringField("ns");
 		if (!opt_.coll.empty() && NamespaceString(op_ns).coll() != opt_.coll) {
 			return false;
@@ -763,9 +818,11 @@ bool MongoSync::ProcessSingleOplog(const std::string& db, const std::string& col
 	if (dst_db.empty()) {
 		dst_db = db.empty() ? NamespaceString(oplog_ns).db() : db;
 	}
+	
 	if (dst_coll.empty()) {
 		dst_coll = coll.empty() ? NamespaceString(oplog_ns).coll() : coll;
 	}
+	
 	std::string dns = dst_db + "." + dst_coll;
 
 	if (op == kClone) {
@@ -774,10 +831,11 @@ bool MongoSync::ProcessSingleOplog(const std::string& db, const std::string& col
 	}
 
 	std::string type = oplog.getStringField("op");
-  if (type.empty()) {
-    LOG(FATAL) << "oplog doesn't not has \"op\" filed" << std::endl;
-    return false;
-  }
+  	if (type.empty()) {
+    	LOG(FATAL) << "oplog doesn't not has \"op\" filed" << std::endl;
+    	return false;
+  	}
+	
 	mongo::BSONObj obj = oplog.getObjectField("o");
 
 	LOG(DEBUG) << "start sync oplog :" << oplog.toString() << std::endl;
@@ -795,39 +853,51 @@ bool MongoSync::ProcessSingleOplog(const std::string& db, const std::string& col
 		case 'n':
 			break;
 		case 'c':
-			if ((dst_db == "local") || (dst_db == "admin") && dst_coll != "$cmd") { //for dst_db = admin and dst_coll == $cmd situation's filtering is to be done later
+			if ((dst_db == "local") || (dst_db == "admin") && dst_coll != "$cmd") { 
+				//for dst_db = admin and dst_coll == $cmd situation's filtering is to be done later
 				return false;
 			}
-			if (!coll.empty() && !mongo::str::endsWith("." + std::string(oplog.getObjectField("o").firstElement().valuestr()), "." + coll)) { // filter the only coll-related oplog
+			if (!coll.empty() && !mongo::str::endsWith(
+					"." + std::string(oplog.getObjectField("o").firstElement().valuestr()), "." + coll)) { 
+				// filter the only coll-related oplog
 				return false;
 			}
-			if (mongo::str::endsWith(dst_coll, "$cmd")) { //destination collection name is not specified
+			
+			if (mongo::str::endsWith(dst_coll, "$cmd")) { 
+				//destination collection name is not specified
 				dst_coll = "";
 			}
+			
 			ApplyCmdOplog(dst_db, dst_coll, oplog, coll == dst_coll);
 	}
 	return true;
 }
 
-void MongoSync::ApplyInsertOplog(const std::string& dst_db, const std::string& dst_coll, const mongo::BSONObj& oplog) {
+void MongoSync::ApplyInsertOplog(const std::string& dst_db, const std::string& dst_coll, 
+		const mongo::BSONObj& oplog) {
+
 	assert(!dst_db.empty() && !dst_coll.empty());
 
 	mongo::BSONObj obj = oplog.getObjectField("o");
 	std::string ns = oplog.getStringField("ns");
 	std::string dns = dst_db + "." + dst_coll;
 	if (ns.size() < sizeof(".system.indexes")
-			|| ns.substr(ns.size()-sizeof(".system.indexes")+1) != ".system.indexes") { //not index-ceating oplog
+			|| ns.substr(ns.size()-sizeof(".system.indexes")+1) != ".system.indexes") { 
+		//not index-ceating oplog
 		dst_conn_->insert(dns, obj, 0, &mongo::WriteConcern::unacknowledged);
 		return;
 	}
 
 	if (dst_coll == "system.indexes") {
-		dns = dst_db + "." + NamespaceString(obj.getStringField("ns")).coll(); // the collection name is system.indexes, needs modified	
+		// the collection name is system.indexes, needs modified
+		dns = dst_db + "." + NamespaceString(obj.getStringField("ns")).coll(); 	
 	}
+	
 	mongo::BSONObjBuilder build;
 	mongo::BSONObjIterator iter(obj);
 	mongo::BSONElement ele;
 	std::string field;
+	// create index with backgroud is true
 	build << "background" << "true" << "ns" << dns;
 	while (iter.more()) {
 		ele = iter.next();
@@ -840,7 +910,10 @@ void MongoSync::ApplyInsertOplog(const std::string& dst_db, const std::string& d
 	SetCollIndexesByVersion(dst_conn_, dst_version_, dns, build.obj());	
 }
 
-void MongoSync::ApplyCmdOplog(std::string dst_db, const std::string& dst_coll, const mongo::BSONObj& oplog, bool same_ns) { //TODO: other cmd oplog could be reconsidered
+void MongoSync::ApplyCmdOplog(std::string dst_db, const std::string& dst_coll, 
+		const mongo::BSONObj& oplog, bool same_ns) { 
+
+	//TODO: other cmd oplog could be reconsidered
 	mongo::BSONObj obj = oplog.getObjectField("o"), tmp;
 	std::string first_field = obj.firstElementFieldName();
 	if (first_field != "deleteIndexes" 
@@ -849,11 +922,13 @@ void MongoSync::ApplyCmdOplog(std::string dst_db, const std::string& dst_coll, c
 			&& first_field != "collMod"
 			&& first_field != "create"
 			&& first_field != "dropDatabase"
-			&& first_field != "renameCollection") { // in admin.$cmd, under db, coll specified, this option has been filtered
+			&& first_field != "renameCollection") { 
+		// in admin.$cmd, under db, coll specified, this option has been filtered
 		return;
 	}
 	
-	if (first_field == "renameCollection") { //get here coll must be empty, so the dst_coll is also empty
+	if (first_field == "renameCollection") { 
+		//get here coll must be empty, so the dst_coll is also empty
 		mongo::BSONObjIterator iter(obj);
 		mongo::BSONElement ele;
 		mongo::BSONObjBuilder build;
@@ -862,12 +937,14 @@ void MongoSync::ApplyCmdOplog(std::string dst_db, const std::string& dst_coll, c
 			ele = iter.next();
 			field = ele.fieldName();
 			if (field == "renameCollection" || field == "to") {
-				if (dst_db == "admin") { //get here, db is empty, all db(exclude admin and local) is related
+				if (dst_db == "admin") { 
+					//get here, db is empty, all db(exclude admin and local) is related
 					build.append(ele);
 					continue;
 				}
 				std::string ns = ele.valuestr();	
-				if (!opt_.db.empty() && NamespaceString(ns).db() != opt_.db) { // should put opt_.db here, optimize it later
+				if (!opt_.db.empty() && NamespaceString(ns).db() != opt_.db) { 
+					// should put opt_.db here, optimize it later
 					return;	
 				}
 				build << field << dst_db + "." + NamespaceString(ns).coll();
@@ -875,8 +952,10 @@ void MongoSync::ApplyCmdOplog(std::string dst_db, const std::string& dst_coll, c
 			}
 			build.append(ele);
 		}
+		
 		obj = build.obj();
-		dst_db = "admin"; //renameCollection command must run against to admin database
+		//renameCollection command must run against to admin database
+		dst_db = "admin"; 
 	} else if (!same_ns || dst_coll.empty()) {
 		mongo::BSONObjIterator iter(obj);
 		mongo::BSONElement ele;
@@ -901,19 +980,24 @@ void MongoSync::ApplyCmdOplog(std::string dst_db, const std::string& dst_coll, c
 		}
 		obj = build.obj();
 	}
+	
 	std::string str = obj.toString();
 	if (!dst_conn_->runCommand(dst_db, obj, tmp, mongo::QueryOption_SlaveOk)) {
-		LOG(WARN) << "administration oplog sync failed, with oplog: " << obj.toString() << ", errms: " << tmp << std::endl;
+		LOG(WARN) << "administration oplog sync failed, with oplog: " << obj.toString() 
+			<< ", errms: " << tmp << std::endl;
 	}
 }
 
-OplogTime MongoSync::GetSideOplogTime(mongo::DBClientConnection* conn, std::string oplog_ns, std::string db, std::string coll, bool first_or_last) {
+OplogTime MongoSync::GetSideOplogTime(mongo::DBClientConnection* conn, std::string oplog_ns, 
+		std::string db, std::string coll, bool first_or_last) {
+
 	int32_t order = first_or_last ? 1 : -1;	
 	mongo::BSONObj obj;
 	if (db.empty() || coll.empty()) {
 		obj = conn->findOne(oplog_ns, mongo::Query().sort("$natural", order), NULL, mongo::QueryOption_SlaveOk);	
 	} else if (!db.empty() && coll.empty()) {
-		obj = conn->findOne(oplog_ns, mongo::Query(BSON("ns" << BSON("$regex" << db))).sort("$natural", order), NULL, mongo::QueryOption_SlaveOk);
+		obj = conn->findOne(oplog_ns, mongo::Query(BSON("ns" << BSON("$regex" << db))).sort("$natural", order), 
+			NULL, mongo::QueryOption_SlaveOk);
 	} else if (!db.empty() && !coll.empty()) {
 		NamespaceString ns(db, coll);
 		obj = conn->findOne(oplog_ns, mongo::Query(BSON("$or" << BSON_ARRAY(BSON("ns" << ns.ns()) 
@@ -923,6 +1007,7 @@ OplogTime MongoSync::GetSideOplogTime(mongo::DBClientConnection* conn, std::stri
 		LOG(FATAL) << "get side oplog time erorr" << std::endl;
 		exit(-1);
 	}
+	
 	return *reinterpret_cast<const OplogTime*>(obj["ts"].value());
 }
 
@@ -936,7 +1021,9 @@ std::string MongoSync::GetMongoVersion(mongo::DBClientConnection* conn) {
 	return version;
 }
 
-int MongoSync::GetAllCollByVersion(mongo::DBClientConnection* conn, std::string version, std::string db, std::vector<std::string>& colls) {
+int MongoSync::GetAllCollByVersion(mongo::DBClientConnection* conn, std::string version, 
+		std::string db, std::vector<std::string>& colls) {
+
 	std::string version_header = version.substr(0, 4);
 	mongo::BSONObj tmp;
 	if (version_header == "3.0." || version_header == "3.2." || version_header == "3.4.") {
@@ -950,7 +1037,6 @@ int MongoSync::GetAllCollByVersion(mongo::DBClientConnection* conn, std::string 
 		while (array.hasField(util::Int2Str(idx))) {
 			// need skip system collections 
 			std::string coll = array.getObjectField(util::Int2Str(idx++)).getStringField("name");
-
 			LOG(INFO) << "get coll : " << coll << std::endl;
 			
 			if (mongoutils::str::endsWith(coll.c_str(), "system.namespaces") ||
@@ -966,21 +1052,25 @@ int MongoSync::GetAllCollByVersion(mongo::DBClientConnection* conn, std::string 
 			colls.push_back(coll);
 		} 
 	} else if (version_header == "2.4." || version_header == "2.6.") {
-		std::auto_ptr<mongo::DBClientCursor> cursor = conn->query(db + ".system.namespaces", mongo::Query().snapshot(), 0, 0, NULL, mongo::QueryOption_SlaveOk | mongo::QueryOption_NoCursorTimeout);
+		std::auto_ptr<mongo::DBClientCursor> cursor = conn->query(db + ".system.namespaces", 
+			mongo::Query().snapshot(), 0, 0, NULL, mongo::QueryOption_SlaveOk | mongo::QueryOption_NoCursorTimeout);
+
 		if (cursor.get() == NULL) {
 			LOG(FATAL) << "get " << db << "'s collections failed" << std::endl;
 			return -1;
 		}
+		
 		std::string coll;
 		while (cursor->more()) {
 			tmp = cursor->next();
 			coll = tmp.getStringField("name");
-      if (mongoutils::str::endsWith(coll.c_str(), ".system.namespaces") ||
-          mongoutils::str::endsWith(coll.c_str(), ".system.users") ||
-          mongoutils::str::endsWith(coll.c_str(), ".system.js") ||
-          mongoutils::str::endsWith(coll.c_str(), ".system.profile") ||
-          mongoutils::str::endsWith(coll.c_str(), ".system.indexes") ||
-          mongoutils::str::contains(coll, ".$")) {
+
+		  if (mongoutils::str::endsWith(coll.c_str(), ".system.namespaces") ||
+	          mongoutils::str::endsWith(coll.c_str(), ".system.users") ||
+	          mongoutils::str::endsWith(coll.c_str(), ".system.js") ||
+	          mongoutils::str::endsWith(coll.c_str(), ".system.profile") ||
+	          mongoutils::str::endsWith(coll.c_str(), ".system.indexes") ||
+	          mongoutils::str::contains(coll, ".$")) {
 				continue;
 			}
 			colls.push_back(coll.substr(coll.find(".")+1));
@@ -989,10 +1079,13 @@ int MongoSync::GetAllCollByVersion(mongo::DBClientConnection* conn, std::string 
 		LOG(FATAL) << "version: " << version << " is not supported" << std::endl;
 		exit(-1);
 	}
+	
 	return 0;
 }
 
-int MongoSync::GetCollIndexesByVersion(mongo::DBClientConnection* conn, std::string version, std::string coll_full_name, mongo::BSONObj& indexes) {
+int MongoSync::GetCollIndexesByVersion(mongo::DBClientConnection* conn, std::string version, 
+		std::string coll_full_name, mongo::BSONObj& indexes) {
+
 	NamespaceString ns(coll_full_name);
 	mongo::BSONObj tmp;
 	std::string version_header = version.substr(0, 4);
@@ -1005,7 +1098,10 @@ int MongoSync::GetCollIndexesByVersion(mongo::DBClientConnection* conn, std::str
 	} else if (version_header == "2.4." || version_header == "2.6.") {
 		std::auto_ptr<mongo::DBClientCursor> cursor;
 		mongo::BSONArrayBuilder array_builder;
-		cursor = conn->query(ns.db() + ".system.indexes", mongo::Query(BSON("ns" << coll_full_name)).snapshot(), 0, 0, 0, mongo::QueryOption_SlaveOk | mongo::QueryOption_NoCursorTimeout);
+		
+		cursor = conn->query(ns.db() + ".system.indexes", mongo::Query(BSON("ns" << coll_full_name)).snapshot(), 
+			0, 0, 0, mongo::QueryOption_SlaveOk | mongo::QueryOption_NoCursorTimeout);
+
 		if (cursor.get() == NULL) {
 			LOG(FATAL) << coll_full_name << " get indexes failed" << std::endl;
 			return -1;
@@ -1022,12 +1118,15 @@ int MongoSync::GetCollIndexesByVersion(mongo::DBClientConnection* conn, std::str
 	return 0;
 }
 
-void MongoSync::SetCollIndexesByVersion(mongo::DBClientConnection* conn, std::string version, std::string coll_full_name, mongo::BSONObj index) {
+void MongoSync::SetCollIndexesByVersion(mongo::DBClientConnection* conn, std::string version, 
+		std::string coll_full_name, mongo::BSONObj index) {
+
 	std::string version_header = version.substr(0, 4);
 	NamespaceString ns(coll_full_name);
 	if (version_header == "3.0." || version_header == "3.2." || version_header == "3.4.") {
 		mongo::BSONObj tmp;
-		conn->runCommand(ns.db(), BSON("createIndexes" << ns.coll() << "indexes" << BSON_ARRAY(index)), tmp, mongo::QueryOption_SlaveOk);
+		conn->runCommand(ns.db(), BSON("createIndexes" << ns.coll() << "indexes" << BSON_ARRAY(index)), 
+			tmp, mongo::QueryOption_SlaveOk);
 	} else if (version_header == "2.4." || version_header == "2.6.") {
 		conn->insert(ns.db() + ".system.indexes", index, 0, &mongo::WriteConcern::unacknowledged);	
 	} else {

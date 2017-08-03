@@ -14,87 +14,91 @@
 
 namespace util {
 
-uint64_t Microtime();
-std::string Int2Str(int64_t num);
-std::string Trim(const std::string &str, const std::string del_str = " \t\n");
-std::vector<std::string> &Split(const std::string &str, char delim,
-                                std::vector<std::string> &elems);
-bool AlmostEqual(int64_t v1, int64_t v2, uint64_t range);
-std::string GetFormatTime(time_t t = -1); // Output format is: Feb 13 16:06:10 2013
-int CreatePath(const std::string &path, mode_t mode = 0755);
+	uint64_t Microtime();
+	std::string Int2Str(int64_t num);
+	std::string Trim(const std::string &str, const std::string del_str = " \t\n");
+	std::vector<std::string> &Split(const std::string &str, char delim,
+	                                std::vector<std::string> &elems);
+	bool AlmostEqual(int64_t v1, int64_t v2, uint64_t range);
+	std::string GetFormatTime(time_t t = -1); // Output format is: Feb 13 16:06:10 2013
+	int CreatePath(const std::string &path, mode_t mode = 0755);
 
-/*************************************************************************************************/
-typedef std::vector<mongo::BSONObj> WriteBatch;
-typedef struct {
-  std::string ns;
-  WriteBatch *batch;
-} WriteUnit;
+	/*************************************************************************************************/
+	typedef std::vector<mongo::BSONObj> WriteBatch;
+	typedef struct {
+		std::string ns;
+		WriteBatch *batch;
+	} WriteUnit;
 
 
-class BGThreadGroup { //This BGThreadGroup is only used for batch write
+	class BGThreadGroup { //This BGThreadGroup is only used for batch write
 
 #define BG_THREAD_NUM 10
-public:
-  BGThreadGroup(const std::string &srv_ip_port, const std::string &auth_db = "", const std::string &user = "", const std::string &passwd = "", const bool use_mcr = false, int32_t bg_thread_num = 10);
-  ~BGThreadGroup();
+	public:
+	  	BGThreadGroup(const std::string &srv_ip_port, 
+			const std::string &auth_db = "", const std::string &user = "", 
+			const std::string &passwd = "", const bool use_mcr = false, 
+			int32_t bg_thread_num = 10);
+		
+	  	~BGThreadGroup();
 
-  void AddWriteUnit(const std::string &ns, WriteBatch *unit);
+	  	void AddWriteUnit(const std::string &ns, WriteBatch *unit);
 
-  bool should_exit() {
-    return should_exit_;
-  }
-  
-  std::queue<WriteUnit> *write_queue_p() {
-    return &write_queue_;
-  }
+	  	bool should_exit() {
+	    	return should_exit_;
+	  	}
+	  
+	  	std::queue<WriteUnit> *write_queue_p() {
+	    	return &write_queue_;
+	  	}
 
-  pthread_cond_t *clock_p() {
-    return &clock_;
-  }
+	  	pthread_cond_t *clock_p() {
+	    	return &clock_;
+	  	}
 
-  pthread_mutex_t *mlock_p() {
-    return &mlock_;
-  }
+	  	pthread_mutex_t *mlock_p() {
+	    	return &mlock_;
+	  	}
 
-	const std::string &srv_ip_port() const {
-		return srv_ip_port_; 
-	}
+		const std::string &srv_ip_port() const {
+			return srv_ip_port_; 
+		}
 
-	const std::string &auth_db() const {
-		return auth_db_;
-	}
+		const std::string &auth_db() const {
+			return auth_db_;
+		}
 
-	const std::string &user() const {
-		return user_;
-	}
+		const std::string &user() const {
+			return user_;
+		}
 
-	const std::string &passwd() const {
-		return passwd_;
-	}
+		const std::string &passwd() const {
+			return passwd_;
+		}
 
-	bool use_mcr() const {
-		return use_mcr_;
-	} 
+		bool use_mcr() const {
+			return use_mcr_;
+		} 
 
-private:
-  void StartThreadsIfNeed();
-  static void *Run(void *arg);
+	private:
+	  	void StartThreadsIfNeed();
+	  	static void *Run(void *arg);
 
-	std::vector<pthread_t> tids_;
-  bool running_; 
-  bool should_exit_; //TODO: maybe needs protected, but here temporally
+		std::vector<pthread_t> tids_;
+	  	bool running_; 
+	  	bool should_exit_; //TODO: maybe needs protected, but here temporally
 
-	std::string srv_ip_port_;
-	std::string auth_db_;
-	std::string user_;
-	std::string passwd_;
-	bool use_mcr_;
-	int32_t bg_thread_num_;
+		std::string srv_ip_port_;
+		std::string auth_db_;
+		std::string user_;
+		std::string passwd_;
+		bool use_mcr_;
+		int32_t bg_thread_num_;
 
-  pthread_cond_t clock_;
-  pthread_mutex_t mlock_;
-  std::queue<WriteUnit> write_queue_;
-};
+	  	pthread_cond_t clock_;
+	  	pthread_mutex_t mlock_;
+	  	std::queue<WriteUnit> write_queue_;
+	};
 
 }
 #endif
