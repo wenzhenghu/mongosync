@@ -213,8 +213,14 @@ namespace util {
 
 		    queue_p->pop();
 		    pthread_mutex_unlock(queue_mutex_p);
+			
+			try {
+				conn->insert(unit.ns, *(unit.batch), 0, &mongo::WriteConcern::unacknowledged); 
+			} catch (mongo::DBException &e) {
+				LOG(WARN) << "util exception occurs when insert doc to " << unit.ns << ", we just skip it" << std::endl;
+				conn->insert(unit.ns, *(unit.batch), mongo::InsertOption_ContinueOnError, &mongo::WriteConcern::unacknowledged); 
+			}
 
-		    conn->insert(unit.ns, *(unit.batch), 0, &mongo::WriteConcern::unacknowledged); 
 		    delete unit.batch;
 	  	}
 

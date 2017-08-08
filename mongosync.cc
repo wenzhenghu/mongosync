@@ -477,7 +477,7 @@ void MongoSync::Process() {
     	oplog_begin_ = opt_.oplog_start;
 
 		if ((need_clone_all_db() || need_clone_db() || need_clone_coll()) && opt_.oplog_start.empty()) {
-	      	oplog_begin_ = GetSideOplogTime(src_conn_, oplog_ns_, "", "", false);
+	      	oplog_begin_ = GetSideOplogTime(src_conn_, oplog_ns_, opt_.db, opt_.coll, false);
 	    } else if (opt_.oplog_start.empty()) {
 	      	oplog_begin_ = GetSideOplogTime(src_conn_, oplog_ns_, opt_.db, opt_.coll, true);
 	    }
@@ -535,13 +535,16 @@ void MongoSync::GenericProcessOplog(OplogProcessOp op) {
 		query = mongo::Query(BSON("$or" << BSON_ARRAY(BSON("ns" << BSON("$regex" << ("^"+opt_.db))) 
 			<< BSON("ns" << "admin.$cmd")) << "ts" << mongo::GTE << oplog_begin_.timestamp() 
 			<< mongo::LTE << oplog_finish_.timestamp())); 
+		LOG(DEBUG) << "start oplog cursor with query :" << query.toString() << std::endl;
 		//TODO: this cannot exact out the opt_.db related oplog, but the opt_.db-prefixed related oplog
 	} else if (!opt_.db.empty() && !opt_.coll.empty()) {
 		NamespaceString ns(opt_.db, opt_.coll);
 		query = mongo::Query(BSON("$or" << BSON_ARRAY(BSON("ns" << ns.ns()) 
 			<< BSON("ns" << ns.db() + ".system.indexes") << BSON("ns" << ns.db() + ".$cmd") << BSON("ns" << "admin.$cmd"))
 			<< "ts" << mongo::GTE << oplog_begin_.timestamp() << mongo::LTE << oplog_finish_.timestamp()));
+		LOG(DEBUG) << "start oplog cursor with query :" << query.toString() << std::endl;
 	}
+
 	
 	std::auto_ptr<mongo::DBClientCursor> cursor = src_conn_->query(oplog_ns_, query, 0, 0, NULL,
 		mongo::QueryOption_CursorTailable | mongo::QueryOption_AwaitData | mongo::QueryOption_NoCursorTimeout);
@@ -691,6 +694,7 @@ void MongoSync::CloneColl(std::string src_ns, std::string dst_ns, int batch_size
 	uint64_t time_pre, time_cur;
 	char buf[32];
 
+	LOG(DEBUG) << "CloneColl start count docs with query :" << opt_.filter.toString() << std::endl;
 	total = src_conn_->count(src_ns, opt_.filter, mongo::QueryOption_SlaveOk | mongo::QueryOption_NoCursorTimeout);
 
  	// Clone index
@@ -993,7 +997,8 @@ OplogTime MongoSync::GetSideOplogTime(mongo::DBClientConnection* conn, std::stri
 
 	int32_t order = first_or_last ? 1 : -1;	
 	mongo::BSONObj obj;
-	if (db.empty() || coll.empty()) {
+	// TODO: (db.empty() || coll.empty()) change to (db.empty() && coll.empty()), may be mistake
+	if (db.empty() && coll.empty()) {
 		obj = conn->findOne(oplog_ns, mongo::Query().sort("$natural", order), NULL, mongo::QueryOption_SlaveOk);	
 	} else if (!db.empty() && coll.empty()) {
 		obj = conn->findOne(oplog_ns, mongo::Query(BSON("ns" << BSON("$regex" << db))).sort("$natural", order), 
