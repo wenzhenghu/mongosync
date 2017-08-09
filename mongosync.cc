@@ -516,8 +516,17 @@ void MongoSync::SyncOplog() {
 
 void MongoSync::GenericProcessOplog(OplogProcessOp op) {
 	mongo::Query query;	
-  	query = mongo::Query(BSON("$or" << BSON_ARRAY(BSON("ns" << BSON("$regex" << ("^"+opt_.db))) 
-		<< BSON("ns" << "admin.$cmd")) << "ts" << oplog_begin_.timestamp()));
+
+/*
+	if (opt_.db.empty()) {
+	  	query = mongo::Query(BSON("$or" << BSON_ARRAY(BSON("ns" << BSON("$regex" << ("^"+opt_.db))) 
+			<< BSON("ns" << "admin.$cmd")) << "ts" << oplog_begin_.timestamp()));
+	} else {
+		// if db not specified, then we can use db. to regex
+		query = mongo::Query(BSON("$or" << BSON_ARRAY(BSON("ns" << BSON("$regex" << ("^"+opt_.db+"\\."))) 
+			<< BSON("ns" << "admin.$cmd")) << "ts" << oplog_begin_.timestamp()));
+
+	} 
 
   	LOG(DEBUG) << "find oplog begin position with query :" << query.toString() << std::endl;
 
@@ -530,13 +539,19 @@ void MongoSync::GenericProcessOplog(OplogProcessOp op) {
       		<< oplog_begin_.no << std::endl;
     	return;
   	}
+*/
 
-	if (/* !opt_.db.empty() &&*/ opt_.coll.empty()) { // both specifying db name and not specifying
-		query = mongo::Query(BSON("$or" << BSON_ARRAY(BSON("ns" << BSON("$regex" << ("^"+opt_.db))) 
+	// keep the same with GetSideOplogTime
+	if (opt_.db.empty() && opt_.coll.empty()) { 
+		query = mongo::Query(BSON("ts" << mongo::GTE << oplog_begin_.timestamp() 
+			<< mongo::LTE << oplog_finish_.timestamp())); 
+		LOG(DEBUG) << "start oplog cursor with query :" << query.toString() << std::endl;
+	} else if (!opt_.db.empty() && opt_.coll.empty()) {
+		query = mongo::Query(BSON("$or" << BSON_ARRAY(BSON("ns" << BSON("$regex" << ("^"+opt_.db+"\\."))) 
 			<< BSON("ns" << "admin.$cmd")) << "ts" << mongo::GTE << oplog_begin_.timestamp() 
 			<< mongo::LTE << oplog_finish_.timestamp())); 
 		LOG(DEBUG) << "start oplog cursor with query :" << query.toString() << std::endl;
-		//TODO: this cannot exact out the opt_.db related oplog, but the opt_.db-prefixed related oplog
+
 	} else if (!opt_.db.empty() && !opt_.coll.empty()) {
 		NamespaceString ns(opt_.db, opt_.coll);
 		query = mongo::Query(BSON("$or" << BSON_ARRAY(BSON("ns" << ns.ns()) 
@@ -694,7 +709,7 @@ void MongoSync::CloneColl(std::string src_ns, std::string dst_ns, int batch_size
 	uint64_t time_pre, time_cur;
 	char buf[32];
 
-	LOG(DEBUG) << "CloneColl start count docs with query :" << opt_.filter.toString() << std::endl;
+	LOG(DEBUG) << "CloneColl start count docs with query :(" << opt_.filter.toString() << " ) " << std::endl;
 	total = src_conn_->count(src_ns, opt_.filter, mongo::QueryOption_SlaveOk | mongo::QueryOption_NoCursorTimeout);
 
  	// Clone index
@@ -997,11 +1012,12 @@ OplogTime MongoSync::GetSideOplogTime(mongo::DBClientConnection* conn, std::stri
 
 	int32_t order = first_or_last ? 1 : -1;	
 	mongo::BSONObj obj;
-	// TODO: (db.empty() || coll.empty()) change to (db.empty() && coll.empty()), may be mistake
+
 	if (db.empty() && coll.empty()) {
 		obj = conn->findOne(oplog_ns, mongo::Query().sort("$natural", order), NULL, mongo::QueryOption_SlaveOk);	
 	} else if (!db.empty() && coll.empty()) {
-		obj = conn->findOne(oplog_ns, mongo::Query(BSON("ns" << BSON("$regex" << db))).sort("$natural", order), 
+		obj = conn->findOne(oplog_ns, mongo::Query(BSON("$or" << BSON_ARRAY(BSON("ns" << BSON("$regex" << ("^"+opt_.db+"\\."))) 
+			<< BSON("ns" << "admin.$cmd")))).sort("$natural", order), 
 			NULL, mongo::QueryOption_SlaveOk);
 	} else if (!db.empty() && !coll.empty()) {
 		NamespaceString ns(db, coll);
@@ -1011,7 +1027,7 @@ OplogTime MongoSync::GetSideOplogTime(mongo::DBClientConnection* conn, std::stri
 	} else {
 		LOG(FATAL) << "get side oplog time erorr" << std::endl;
 		exit(-1);
-	}
+	}	
 	
 	return *reinterpret_cast<const OplogTime*>(obj["ts"].value());
 }
