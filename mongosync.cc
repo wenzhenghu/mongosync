@@ -645,7 +645,7 @@ void MongoSync::GenericProcessOplog(OplogProcessOp op) {
 		waiting = false;
 
 		oplog = cursor->next();
-		if (ProcessSingleOplog(opt_.db, opt_.coll, dst_db, dst_coll, oplog.getOwned(), op)) {
+		if (ProcessSingleOplog(opt_.db, opt_.dbs, opt_.coll, dst_db, dst_coll, oplog.getOwned(), op)) {
 			memcpy(&cur_times, oplog["ts"].value(), 2*sizeof(int32_t));
 		}
 		
@@ -830,7 +830,7 @@ void MongoSync::CloneCollIndex(std::string sns, std::string dns) {
 		<< indexes_num << " objects\n" << std::endl;
 }
 
-bool MongoSync::ProcessSingleOplog(const std::string& db, const std::string& coll, 
+bool MongoSync::ProcessSingleOplog(const std::string& db, const std::string& db_list, const std::string& coll, 
 	std::string dst_db, std::string dst_coll, const mongo::BSONObj& oplog, const OplogProcessOp op) {
 
 	std::string oplog_ns = oplog.getStringField("ns");	
@@ -847,6 +847,37 @@ bool MongoSync::ProcessSingleOplog(const std::string& db, const std::string& col
 			return false;
 		}
 	}
+
+
+	if (!db_list.empty() && oplog_ns != "admin.$cmd") { 
+
+		std::vector<std::string> dbs;
+		
+		util::Split(db_list, ',', dbs);
+
+		bool is_match = false;
+		
+		for (std::vector<std::string>::const_iterator iter = dbs.begin();
+				iter != dbs.end(); ++iter) {
+		
+			// filter the same prefix db names, because of cannot filtering this situation with regex, 
+			// and pass renameCollection command oplog(in admin.$cmd)
+			std::string sns = *iter + ".";
+			if (oplog_ns.size() < sns.size() || oplog_ns.substr(0, sns.size()) != sns) {
+				is_match = false;
+			} else {
+				is_match = true;
+				break;
+			}
+
+		}
+
+		if (!is_match)
+			return false;
+				
+	}
+
+	
 
 	if (mongo::str::endsWith(oplog_ns.c_str(), ".system.indexes")) {
 		if (opt_.no_index) {

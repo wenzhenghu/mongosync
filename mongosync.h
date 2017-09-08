@@ -193,9 +193,9 @@ private:
 
 	void CloneCollIndex(std::string sns, std::string dns);
 	void GenericProcessOplog(OplogProcessOp op);
-	bool ProcessSingleOplog(const std::string& db, const std::string& coll, 
-		std::string dst_db, std::string dst_coll, const mongo::BSONObj& oplog, 
-		const OplogProcessOp op);
+	bool ProcessSingleOplog(const std::string& db, const std::string& db_list, 
+		const std::string& coll, std::string dst_db, std::string dst_coll, 
+		const mongo::BSONObj& oplog, const OplogProcessOp op);
 	void ApplyInsertOplog(const std::string& dst_db, const std::string& dst_coll, 
 		const mongo::BSONObj& oplog);
 	void ApplyCmdOplog(std::string dst_db, const std::string& dst_coll, 
