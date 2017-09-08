@@ -167,6 +167,7 @@ public:
 	void Process();
 	void CloneOplog();
 	void CloneAllDb();
+	void CloneDbList();
 	void CloneDb(std::string db = "");
 	void CloneColl(std::string src_ns, std::string dst_ns, int32_t batch_size);
 	void SyncOplog();
