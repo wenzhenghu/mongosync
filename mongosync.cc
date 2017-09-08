@@ -45,6 +45,7 @@ static void Usage() {
 	std::cerr << "--shard_passwd arg       the source mongos server's shard password" << std::endl;
 	std::cerr << "--dst_use_mcr            force destination connection to use MONGODB-CR password machenism" << std::endl;
 	std::cerr << "--db arg                 the source database to be cloned" << std::endl;
+	std::cerr << "--dbs arg                the source database list name" << std::endl;
 	std::cerr << "--dst_db arg             the destination database" << std::endl;
 	std::cerr << "--coll arg               the source collection to be cloned" << std::endl;
 	std::cerr << "--colls arg              the source collection list name" << std::endl;
@@ -118,6 +119,9 @@ void Options::ParseCommand(int argc, char** argv) {
 		} else if (strcasecmp(argv[idx], "--db") == 0) {
 			CHECK_ARGS_NUM();
 			db = argv[++idx];
+		} else if (strcasecmp(argv[idx], "--dbs") == 0) {
+			CHECK_ARGS_NUM();
+			dbs = argv[++idx];
 		} else if (strcasecmp(argv[idx], "--dst_db") == 0) {
 			CHECK_ARGS_NUM();
 			dst_db = argv[++idx];
@@ -218,6 +222,7 @@ void Options::LoadConf(const std::string &conf_file) {
   	GetConfStr("src_auth_db", &src_auth_db);
   	GetConfBool("src_use_mcr", &src_use_mcr);
   	GetConfStr("db", &db);
+  	GetConfStr("dbs", &dbs);
   	GetConfStr("coll", &coll);
   	GetConfStr("colls", &colls);
 
@@ -491,7 +496,11 @@ void MongoSync::Process() {
 	}
 
 	if (need_clone_all_db()) {
-		CloneAllDb();	
+		if (!opt_.dbs.empty()) {
+			CloneDbList();
+		} else {
+			CloneAllDb();	
+		}
 	} else if (need_clone_db()) {
 		CloneDb();
 	} else if (need_clone_coll()) {
@@ -671,6 +680,22 @@ void MongoSync::CloneAllDb() {
 		}
 		
 		CloneDb(db);
+	}
+}
+
+void MongoSync::CloneDbList() {
+	std::vector<std::string> dbs;
+
+	util::Split(opt_.dbs, ',', dbs);
+
+	for (std::vector<std::string>::const_iterator iter = dbs.begin();
+			iter != dbs.end(); ++iter) {
+
+		if (*iter == "admin" || *iter == "local" || *iter == "config") {
+			continue;
+		}
+				
+		CloneDb(*iter);
 	}
 }
 

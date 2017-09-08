@@ -76,6 +76,7 @@ struct Options {
 
 	//the database or collection to be transfered	
 	std::string db;
+	std::string dbs;
 	std::string dst_db;
 	std::string coll;
 	std::string colls;
