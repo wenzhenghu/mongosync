@@ -503,7 +503,7 @@ void MongoSync::Process() {
 
 		// 如果是仅同步增量oplog的方式，则在此开始同步，需要拷贝全量数据
 		if (opt_.is_incrmode) {
-			LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << " start is_incrmode oplog start:"
+			LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "start is_incrmode oplog start:"
 				<< oplog_begin_.sec << "," << oplog_begin_.no << " (" 
 				<< util::GetFormatTime(oplog_begin_.sec) << ")" << std::endl;
 
