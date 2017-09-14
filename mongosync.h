@@ -9,6 +9,7 @@
 #define MAX_BATCH_BUFFER_SIZE (16*1024*1024)
 const std::string PROMPT_PREFIX = "\t[mongosync";
 
+
 enum OplogProcessOp {
 	kClone,
 	kApply

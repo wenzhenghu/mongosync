@@ -14,6 +14,14 @@
 #include "mongosync.h"
 #include "mongo/util/mongoutils/str.h"
 
+
+// use to print progress
+int totalDb = 0;
+int curDb = 0;
+int totalColl = 0;
+int curColl = 0;
+
+
 static void GetSeparateArgs(const std::string& raw_str, std::vector<std::string>* argv_p) {
   	const char* p = raw_str.data();
   	const char *pch = strtok(const_cast<char*>(p), " ");
@@ -397,27 +405,27 @@ mongo::DBClientConnection* MongoSync::ConnectAndAuth(const std::string &srv_ip_p
 	mongo::DBClientConnection* conn = NULL;
 	conn = new mongo::DBClientConnection();	
 	if (!conn->connect(srv_ip_port, errmsg)) {
-		LOG(FATAL) << util::GetFormatTime() << "connect to srv: " << srv_ip_port
+		LOG(FATAL) << util::GetFormatTime() << "  connect to srv: " << srv_ip_port
       		<< " failed, with errmsg: " << errmsg << std::endl;
 		delete conn;
 		return NULL;
 	}
 	
   	if (!bg) {
-    	LOG(INFO) << util::GetFormatTime() << "connect to srv_rsv: " << srv_ip_port
+    	LOG(INFO) << util::GetFormatTime() << "  connect to srv_rsv: " << srv_ip_port
       		<< " ok!" << std::endl;
   	}
 
 	if (!passwd.empty()) {
 		if (!conn->auth(auth_db, user, passwd, errmsg, use_mcr)) {
-			LOG(FATAL) << util::GetFormatTime() << "srv: " << srv_ip_port
+			LOG(FATAL) << util::GetFormatTime() << "  srv: " << srv_ip_port
         		<< ", dbname: " << auth_db << " failed" << std::endl; 
 			delete conn;
 			return NULL;
 		}
 		
     	if (!bg) {
-		  	LOG(INFO) << util::GetFormatTime() << "srv: " << srv_ip_port
+		  	LOG(INFO) << util::GetFormatTime() << "  srv: " << srv_ip_port
         		<< ", dbname: " << auth_db << " ok!" << std::endl;
     	}
 	}
@@ -495,7 +503,7 @@ void MongoSync::Process() {
 
 		// 如果是仅同步增量oplog的方式，则在此开始同步，需要拷贝全量数据
 		if (opt_.is_incrmode) {
-			LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "start is_incrmode oplog start:"
+			LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << " start is_incrmode oplog start:"
 				<< oplog_begin_.sec << "," << oplog_begin_.no << " (" 
 				<< util::GetFormatTime(oplog_begin_.sec) << ")" << std::endl;
 
@@ -516,8 +524,10 @@ void MongoSync::Process() {
 			CloneAllDb();	
 		}
 	} else if (need_clone_db()) {
+		totalDb = 1;
 		CloneDb();
 	} else if (need_clone_coll()) {
+		totalDb = 1;
 		std::string sns = opt_.db + "." + opt_.coll;
 		std::string dns = (opt_.dst_db.empty() ? opt_.db : opt_.dst_db) + "." 
 			+ (opt_.dst_coll.empty() ? opt_.coll : opt_.dst_coll);
@@ -680,7 +690,7 @@ void MongoSync::GenericProcessOplog(OplogProcessOp op) {
 			pre = cur;
 
 	  		if (cur - cur_times.sec < 20) {
-        		LOG(INFO) << MONGOSYNC_PROMPT << "Syncronization almost done" << std::endl;
+        		LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "Syncronization almost done" << std::endl;
      		}
 			
 			pre_times = cur_times;
@@ -699,6 +709,8 @@ void MongoSync::CloneAllDb() {
 	obj.getFieldNames(fields);
 	std::string db;
 
+	totalDb = fields.size();
+
 	for (std::set<std::string>::iterator iter = fields.begin(); iter != fields.end(); ++iter) {
 		db = obj.getObjectField(*iter).getStringField("name");
 		if (db == "admin" || db == "local" || db == "config") {
@@ -714,9 +726,12 @@ void MongoSync::CloneDbList() {
 
 	util::Split(opt_.dbs, ',', dbs);
 
+	totalDb = dbs.size();
+
 	for (std::vector<std::string>::const_iterator iter = dbs.begin();
 			iter != dbs.end(); ++iter) {
 
+		
 		if (*iter == "admin" || *iter == "local" || *iter == "config") {
 			continue;
 		}
@@ -726,6 +741,9 @@ void MongoSync::CloneDbList() {
 }
 
 void MongoSync::CloneDb(std::string db) {
+	curDb++;
+	curColl = 0;
+	
 	if (db == "") {
 		db = opt_.db;
 	}
@@ -740,6 +758,8 @@ void MongoSync::CloneDb(std::string db) {
 	std::string dst_db = opt_.dst_db.empty() ? db : opt_.dst_db;
   	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "cloning db: " << db << " ----> " 
 		<< dst_db << "\n" << std::endl;
+
+	totalColl = colls.size();
 	for (std::vector<std::string>::const_iterator iter = colls.begin();
 			iter != colls.end(); ++iter) {
 				
@@ -751,9 +771,17 @@ void MongoSync::CloneDb(std::string db) {
 }
 
 void MongoSync::CloneColl(std::string src_ns, std::string dst_ns, int batch_size) {
-//	std::string src_ns = opt_.db + "." + opt_.coll;
-//	std::string dst_ns = (opt_.dst_db.empty() ? opt_.db : opt_.dst_db) + "." + (opt_.dst_coll.empty() ? opt_.coll : opt_.dst_coll);
+
+	curColl++;
+
 	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "cloning " << src_ns << " to " << dst_ns << std::endl;
+
+
+	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "cloing progress start: " 
+		<< "[totalDb:" << totalDb << " curDb:" << curDb
+		<< ",totalColl:" << totalColl << " curColl:" << curColl << "]" << std::endl;
+
+	
 	uint64_t total = 0, cnt = 0;
 	std::auto_ptr<mongo::DBClientCursor> cursor;
 	int32_t acc_size, percent, retries = 3;
@@ -823,6 +851,12 @@ retry:
 
 	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "clone "	<< src_ns << " to " << dst_ns 
 		<< " success, total " << cnt << " objects\n" << std::endl;
+
+	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "cloing progress finish: " 
+		<< "[totalDb:" << totalDb << " curDb:" << curDb
+		<< ",totalColl:" << totalColl << " curColl:" << curColl << "]" << std::endl;
+
+	
 }
 
 void MongoSync::CloneCollIndex(std::string sns, std::string dns) {
@@ -1138,7 +1172,7 @@ int MongoSync::GetAllCollByVersion(mongo::DBClientConnection* conn, std::string 
 		while (array.hasField(util::Int2Str(idx))) {
 			// need skip system collections 
 			std::string coll = array.getObjectField(util::Int2Str(idx++)).getStringField("name");
-			LOG(INFO) << "get coll : " << coll << std::endl;
+			LOG(DEBUG) << "get coll : " << coll << std::endl;
 			
 			if (mongoutils::str::endsWith(coll.c_str(), "system.namespaces") ||
 				mongoutils::str::endsWith(coll.c_str(), "system.users") ||
@@ -1146,7 +1180,8 @@ int MongoSync::GetAllCollByVersion(mongo::DBClientConnection* conn, std::string 
 				mongoutils::str::endsWith(coll.c_str(), "system.profile") ||
 				mongoutils::str::endsWith(coll.c_str(), "system.indexes") ||
 				mongoutils::str::contains(coll, ".$")) {
-					LOG(INFO) << "this is sys coll : " << coll << " we skip it " << std::endl;
+					LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT 
+						<< "this is sys coll : " << coll << " we skip it " << std::endl;
 					  continue;
 			}
 
