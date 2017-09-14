@@ -41,6 +41,7 @@ static void Usage() {
 	std::cerr << "--dst_passwd arg         the destination mongodb server's logging password" << std::endl;
 	std::cerr << "--dst_auth_db arg        the destination mongodb server's auth db" << std::endl;
 	std::cerr << "--is_mongos              the source mongodb server is mongos" << std::endl;
+	std::cerr << "--is_incrmode            only sync oplog, no data" << std::endl;
 	std::cerr << "--shard_user arg         the source mongos server's shard username" << std::endl;
 	std::cerr << "--shard_passwd arg       the source mongos server's shard password" << std::endl;
 	std::cerr << "--dst_use_mcr            force destination connection to use MONGODB-CR password machenism" << std::endl;
@@ -59,7 +60,7 @@ static void Usage() {
 	std::cerr << "--filter arg             the bson format string used to filter the records to be transfered" << std::endl;
 	std::cerr << "--bg_num arg             the background thread number for cloning data(not oplog syncing and oplog storing)" << std::endl;
 	std::cerr << "--batch_size arg         the data grouping size criterion in cloning data(0-16M, default to 16M), unit is Byte" << std::endl;
-	std::cerr << "--log_level arg          specify the log level(INFO, WARN, FATAL)" << std::endl;
+	std::cerr << "--log_level arg          specify the log level(DEBUG, INFO, WARN, FATAL)" << std::endl;
 }
 
 #define CHECK_ARGS_NUM() \
@@ -108,6 +109,8 @@ void Options::ParseCommand(int argc, char** argv) {
 			dst_auth_db = argv[++idx];
 		} else if (strcasecmp(argv[idx], "--is_mongos") == 0) {
       		is_mongos = true;
+		} else if (strcasecmp(argv[idx], "--is_incrmode") == 0) {
+			is_incrmode = true;
 		} else if (strcasecmp(argv[idx], "--shard_user") == 0) {
 			CHECK_ARGS_NUM();
 			shard_user = argv[++idx];
@@ -227,6 +230,7 @@ void Options::LoadConf(const std::string &conf_file) {
   	GetConfStr("colls", &colls);
 
   	GetConfBool("is_mongos", &is_mongos);
+	GetConfBool("is_incrmode", &is_incrmode);
   	GetConfStr("shard_user", &shard_user);
   	GetConfStr("shard_passwd", &shard_passwd);
 
@@ -488,6 +492,16 @@ void MongoSync::Process() {
 	    }
 		
 	    oplog_finish_ = opt_.oplog_end;
+
+		// 如果是仅同步增量oplog的方式，则在此开始同步，需要拷贝全量数据
+		if (opt_.is_incrmode) {
+			LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "start is_incrmode oplog start:"
+				<< oplog_begin_.sec << "," << oplog_begin_.no << " (" 
+				<< util::GetFormatTime(oplog_begin_.sec) << ")" << std::endl;
+
+			SyncOplog();
+			return;
+		}
   	}
 
 	if (need_clone_oplog()) {
@@ -628,8 +642,20 @@ void MongoSync::GenericProcessOplog(OplogProcessOp op) {
 						<< cur_times.sec << "," << cur_times.no << " (" 
 						<< util::GetFormatTime(cur_times.sec) << ")" << std::endl;
 				}
-				
-				LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "waiting for new data..." << std::endl;
+
+
+				if (!cur_times.empty()) {				
+					LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT 
+						<< "waiting for new data... oplog timestamp:"
+						<< cur_times.sec << "," << cur_times.no << std::endl;
+				} else {
+					LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT 
+						<< "waiting for new data... oplog timestamp:"
+						<< oplog_begin_.sec << "," << oplog_begin_.no << std::endl;
+
+
+				}
+
 				waiting = true;
 			}
 
@@ -876,8 +902,6 @@ bool MongoSync::ProcessSingleOplog(const std::string& db, const std::string& db_
 			return false;
 				
 	}
-
-	
 
 	if (mongo::str::endsWith(oplog_ns.c_str(), ".system.indexes")) {
 		if (opt_.no_index) {
