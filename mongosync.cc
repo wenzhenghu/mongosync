@@ -426,7 +426,7 @@ mongo::DBClientConnection* MongoSync::ConnectAndAuth(const std::string &srv_ip_p
 		
     	if (!bg) {
 		  	LOG(INFO) << util::GetFormatTime() << "  srv: " << srv_ip_port
-        		<< ", dbname: " << auth_db << " ok!" << std::endl;
+        		<< ", dbname: " << auth_db << " ok!\n" << std::endl;
     	}
 	}
 	
@@ -756,7 +756,7 @@ void MongoSync::CloneDb(std::string db) {
   	}
 
 	std::string dst_db = opt_.dst_db.empty() ? db : opt_.dst_db;
-  	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "cloning db: " << db << " ----> " 
+  	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "starting cloning db: " << db << " ----> " 
 		<< dst_db << "\n" << std::endl;
 
 	totalColl = colls.size();
@@ -766,22 +766,20 @@ void MongoSync::CloneDb(std::string db) {
 		CloneColl(db + "." + *iter, dst_db + "." + *iter, opt_.batch_size);
 	}
 			
-  	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "clone db: " << db << " ----> " 
-		<< dst_db << " finished\n" << std::endl;
+  	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "finished cloning db: " << db << " ----> " 
+		<< dst_db << "\n" << std::endl;
 }
 
 void MongoSync::CloneColl(std::string src_ns, std::string dst_ns, int batch_size) {
 
 	curColl++;
 
-	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "cloning " << src_ns << " to " << dst_ns << std::endl;
+	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "starting cloning collection: " << src_ns << " to " << dst_ns << std::endl;
+	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "cloing collection progress started: " 
+		<< "[totalDb:" << totalDb << ",curDb:" << curDb
+		<< ",totalColl:" << totalColl << ",curColl:" << curColl << "],"
+		<< "curNS:" << src_ns << std::endl;
 
-
-	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "cloing progress start: " 
-		<< "[totalDb:" << totalDb << " curDb:" << curDb
-		<< ",totalColl:" << totalColl << " curColl:" << curColl << "]" << std::endl;
-
-	
 	uint64_t total = 0, cnt = 0;
 	std::auto_ptr<mongo::DBClientCursor> cursor;
 	int32_t acc_size, percent, retries = 3;
@@ -824,8 +822,9 @@ retry:
 				if (time_cur > time_pre) {
 					percent = cnt * 100 / total;
 					snprintf(buf, sizeof(buf), "%d/%d", cnt, total);
-					LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "cloing progress: " 
-						<< std::setfill(' ') << std::setw(20) << buf << "\t"<< percent << "%" << "\t(objects)" << std::endl;
+					LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "collection " << src_ns
+						<< " cloing progress: " << std::setfill(' ') << std::setw(20) << buf << "\t"
+						<< percent << "%" << "\t(objects)" << std::endl;
 					time_pre = time_cur;
 				}
 			}
@@ -849,12 +848,14 @@ retry:
     	sleep(1);
   	}
 
-	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "clone "	<< src_ns << " to " << dst_ns 
-		<< " success, total " << cnt << " objects\n" << std::endl;
+	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "finished cloing collection: "	<< src_ns << " to " << dst_ns 
+		<< " , total " << cnt << " objects" << std::endl;
 
-	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "cloing progress finish: " 
-		<< "[totalDb:" << totalDb << " curDb:" << curDb
-		<< ",totalColl:" << totalColl << " curColl:" << curColl << "]" << std::endl;
+	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "cloing collection progress finished: " 
+		<< "[totalDb:" << totalDb << ",curDb:" << curDb
+		<< ",totalColl:" << totalColl << ",curColl:" << curColl << "],"
+		<< "curNS:" << src_ns << "\n" << std::endl;
+
 
 	
 }
