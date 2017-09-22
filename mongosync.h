@@ -55,7 +55,7 @@ struct Options {
     	dst_oplog_ns("sync.oplog"),
     	no_index(false),
     	is_mongos(false),
-    	is_incrmode(false),
+    	is_ntsemode(false),
     	bg_num(10),
 		batch_size(16*1024*1024) {
    	}
@@ -66,8 +66,7 @@ struct Options {
 	std::string src_auth_db;
 	bool src_use_mcr;
   	bool is_mongos;
-	// only sync oplog ,no copy data
-	bool is_incrmode;
+	bool is_ntsemode;
 
   	std::string shard_user;
   	std::string shard_passwd;
@@ -246,6 +245,14 @@ private:
 
 	bool need_sync_oplog() {
 		return !opt_.raw_oplog && opt_.oplog;
+	}
+
+	bool ntse_copy_mode() {
+		return opt_.oplog_start.empty() && opt_.is_ntsemode;
+	}
+
+	bool ntse_sync_mode() {
+		return !opt_.oplog_start.empty() && opt_.is_ntsemode;
 	}
 
 	MongoSync(const MongoSync&);

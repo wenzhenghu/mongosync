@@ -49,7 +49,7 @@ static void Usage() {
 	std::cerr << "--dst_passwd arg         the destination mongodb server's logging password" << std::endl;
 	std::cerr << "--dst_auth_db arg        the destination mongodb server's auth db" << std::endl;
 	std::cerr << "--is_mongos              the source mongodb server is mongos" << std::endl;
-	std::cerr << "--is_incrmode            only sync oplog, no data" << std::endl;
+	std::cerr << "--is_ntsemode            only copy data but print op_start, or only sync oplog from op_start without copy data. depands on --op_start" << std::endl;
 	std::cerr << "--shard_user arg         the source mongos server's shard username" << std::endl;
 	std::cerr << "--shard_passwd arg       the source mongos server's shard password" << std::endl;
 	std::cerr << "--dst_use_mcr            force destination connection to use MONGODB-CR password machenism" << std::endl;
@@ -117,8 +117,8 @@ void Options::ParseCommand(int argc, char** argv) {
 			dst_auth_db = argv[++idx];
 		} else if (strcasecmp(argv[idx], "--is_mongos") == 0) {
       		is_mongos = true;
-		} else if (strcasecmp(argv[idx], "--is_incrmode") == 0) {
-			is_incrmode = true;
+		} else if (strcasecmp(argv[idx], "--is_ntsemode") == 0) {
+			is_ntsemode = true;
 		} else if (strcasecmp(argv[idx], "--shard_user") == 0) {
 			CHECK_ARGS_NUM();
 			shard_user = argv[++idx];
@@ -238,7 +238,7 @@ void Options::LoadConf(const std::string &conf_file) {
   	GetConfStr("colls", &colls);
 
   	GetConfBool("is_mongos", &is_mongos);
-	GetConfBool("is_incrmode", &is_incrmode);
+	GetConfBool("is_ntsemode", &is_ntsemode);
   	GetConfStr("shard_user", &shard_user);
   	GetConfStr("shard_passwd", &shard_passwd);
 
@@ -490,7 +490,7 @@ bool MongoSync::IsBalancerRunning() {
 }
 
 void MongoSync::Process() {
-  	if (need_sync_oplog()) {
+  	if (need_sync_oplog() || opt_.is_ntsemode) {
     	oplog_begin_ = opt_.oplog_start;
 
 		if ((need_clone_all_db() || need_clone_db() || need_clone_coll()) && opt_.oplog_start.empty()) {
@@ -498,12 +498,18 @@ void MongoSync::Process() {
 	    } else if (opt_.oplog_start.empty()) {
 	      	oplog_begin_ = GetSideOplogTime(src_conn_, oplog_ns_, opt_.db, opt_.coll, true);
 	    }
+
+		if (opt_.is_ntsemode) {
+			LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "[ntse mode] print oplog start:"
+				<< oplog_begin_.sec << "," << oplog_begin_.no << std::endl;
+		}
+
 		
 	    oplog_finish_ = opt_.oplog_end;
 
-		// 如果是仅同步增量oplog的方式，则在此开始同步，需要拷贝全量数据
-		if (opt_.is_incrmode) {
-			LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "start is_incrmode oplog start:"
+		// 如果是仅同步增量oplog的方式，则在此开始同步，无需拷贝全量数据
+		if (ntse_sync_mode()) {
+			LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "[ntse mode] only sync oplog"
 				<< oplog_begin_.sec << "," << oplog_begin_.no << " (" 
 				<< util::GetFormatTime(oplog_begin_.sec) << ")" << std::endl;
 
@@ -534,7 +540,12 @@ void MongoSync::Process() {
 		CloneColl(sns, dns, opt_.batch_size);
 	}
 
-	if (need_sync_oplog()) {
+	LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "finished cloning all dbs" << "\n" << std::endl;
+
+	if (ntse_copy_mode())
+		return;
+	
+	if (need_sync_oplog() || ntse_sync_mode()) {
 		SyncOplog();
 	}
 }
