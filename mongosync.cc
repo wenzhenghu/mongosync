@@ -509,7 +509,7 @@ void MongoSync::Process() {
 
 		// 如果是仅同步增量oplog的方式，则在此开始同步，无需拷贝全量数据
 		if (ntse_sync_mode()) {
-			LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "[ntse mode] only sync oplog"
+			LOG(INFO) << util::GetFormatTime() << MONGOSYNC_PROMPT << "[ntse mode] only sync oplog from:"
 				<< oplog_begin_.sec << "," << oplog_begin_.no << " (" 
 				<< util::GetFormatTime(oplog_begin_.sec) << ")" << std::endl;
 
