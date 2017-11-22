@@ -490,7 +490,7 @@ bool MongoSync::IsBalancerRunning() {
 }
 
 void MongoSync::Process() {
-  	if (need_sync_oplog() || opt_.is_ntsemode) {
+  	if (need_sync_oplog() || (opt_.is_ntsemode && !opt_.is_mongos)) {
     	oplog_begin_ = opt_.oplog_start;
 
 		if ((need_clone_all_db() || need_clone_db() || need_clone_coll()) && opt_.oplog_start.empty()) {
