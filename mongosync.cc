@@ -354,13 +354,13 @@ MongoSync::MongoSync(const Options *opt)
                    opt->dst_passwd,
                    opt->dst_use_mcr,
                    opt->bg_num) {
-  	if (opt->is_mongos) {
+//  	if (opt->is_mongos) {
     	// [mongosync_127.0.0.1:8099]
-    	MONGOSYNC_PROMPT = PROMPT_PREFIX + "_" + opt->src_ip_port + "]\t";
-  	} else {
+//    	MONGOSYNC_PROMPT = PROMPT_PREFIX + "_" + opt->src_ip_port + "]\t";
+//  	} else {
     	// [mongosync]
     	MONGOSYNC_PROMPT = PROMPT_PREFIX + "]\t";
-  	}
+//  	}
 }
 
 MongoSync::~MongoSync() {
